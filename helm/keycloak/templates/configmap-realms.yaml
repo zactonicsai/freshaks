@@ -1,0 +1,20 @@
+{{- if .Values.realm.import }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "keycloak.fullname" . }}-realms
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+data:
+{{- range $path, $_ := .Files.Glob "realms/*.json" }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path
+    | replace "__BASE_DOMAIN__" $.Values.realm.baseDomain
+    | replace "__PROTO__" $.Values.realm.proto
+    | replace "__SSL_REQUIRED__" $.Values.realm.sslRequired
+    | replace "__DEMO_PASSWORD__" $.Values.realm.demoPassword
+    | replace "__JAVA_CLIENT_SECRET__" $.Values.realm.javaClientSecret
+    | replace "__PYTHON_CLIENT_SECRET__" $.Values.realm.pythonClientSecret
+    | indent 4 }}
+{{- end }}
+{{- end }}

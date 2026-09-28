@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Fresh Mart Deli — menu{% endblock %}
+{% block content %}
+<p class="text-accent font-semibold tracking-wide uppercase text-xs mb-3">Python deli · Flask + Keycloak</p>
+<h1 class="text-4xl font-bold text-stone-900">Today's <span class="text-brand">deli menu</span></h1>
+<p class="mt-3 text-lg text-stone-600">Same front office (Keycloak), same badges, a different app written in Python.
+Log in once and both the Java store and this deli know who you are.</p>
+
+<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+  {% for m in menu %}
+  <div class="card p-5 flex items-center gap-4" data-testid="menu-item">
+    <div class="text-4xl">{{ m.emoji }}</div>
+    <div><div class="font-semibold text-stone-900">{{ m.item }}</div><div class="text-sm text-stone-500">${{ '%.2f'|format(m.price) }}</div></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-8 flex gap-3">
+  <a href="{{ url_for('main.order') }}" class="px-5 py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark">Order something</a>
+  {% if not user %}<a href="{{ url_for('auth.login') }}" class="px-5 py-3 rounded-xl border border-stone-300 font-semibold hover:bg-white">Log in at the front office</a>{% endif %}
+</div>
+{% endblock %}

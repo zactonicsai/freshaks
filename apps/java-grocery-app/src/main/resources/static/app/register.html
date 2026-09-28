@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Fresh Mart — cash register</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: { brand: "#1F7A4D", "brand-dark": "#165C3A", cream: "#FBF8F1", accent: "#E07A2F" } } } };
+</script>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/app.js"></script>
+</head>
+<body class="bg-cream text-stone-800 min-h-screen">
+<nav id="nav" class="bg-white border-b border-stone-200"></nav>
+
+<main class="max-w-5xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-stone-900">🧾 Cash Register</h1>
+  <p class="text-stone-600 mt-1">Cashiers and managers see every order here and mark it as paid.</p>
+
+  <div class="mt-6 flex items-center gap-3 text-sm">
+    <label class="flex items-center gap-2"><input id="only-new" type="checkbox" checked class="accent-brand"> Show only orders waiting to be paid</label>
+    <button id="refresh" class="px-3 py-1.5 rounded-lg border border-stone-300 hover:bg-white">Refresh</button>
+  </div>
+
+  <div class="card mt-4 overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-stone-50 text-stone-500 text-left">
+        <tr><th class="p-3 font-medium">#</th><th class="p-3 font-medium">Customer</th><th class="p-3 font-medium">Items</th>
+            <th class="p-3 font-medium">Total</th><th class="p-3 font-medium">Status</th><th class="p-3 font-medium">Placed</th><th class="p-3"></th></tr>
+      </thead>
+      <tbody id="orders"><tr><td class="p-3" colspan="7">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<div id="toast" class="hidden"></div>
+
+<script>
+  var allOrders = [];
+  function render() {
+    var onlyNew = FM.el('only-new').checked;
+    var rows = allOrders.filter(function (o) { return !onlyNew || o.status === 'NEW'; });
+    if (!rows.length) { FM.el('orders').innerHTML = '<tr><td class="p-3 text-stone-500" colspan="7">Nothing waiting at the register.</td></tr>'; return; }
+    FM.el('orders').innerHTML = rows.map(function (o) {
+      var items = o.items.map(function (it) { return it.quantity + '×' + FM.esc(it.product.emoji); }).join(' ');
+      var action = o.status === 'NEW'
+        ? '<button class="pay-btn px-3 py-1.5 rounded-lg bg-brand text-white font-medium hover:bg-brand-dark" data-id="' + o.id + '">Mark paid</button>'
+        : '<span class="text-stone-400 text-xs">paid by ' + FM.esc(o.paidBy) + '</span>';
+      return '<tr class="border-t border-stone-100" data-testid="order-row">' +
+        '<td class="p-3">' + o.id + '</td><td class="p-3">' + FM.esc(o.customer) + '</td><td class="p-3">' + items + '</td>' +
+        '<td class="p-3 font-medium">' + FM.money(o.total) + '</td>' +
+        '<td class="p-3 ' + (o.status === 'PAID' ? 'text-brand' : 'text-accent') + ' font-semibold">' + FM.esc(o.status) + '</td>' +
+        '<td class="p-3 text-stone-500">' + FM.when(o.createdAt) + '</td><td class="p-3 text-right">' + action + '</td></tr>';
+    }).join('');
+    var btns = document.querySelectorAll('.pay-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function (ev) {
+        var id = ev.currentTarget.getAttribute('data-id');
+        FM.api('/api/orders/' + id + '/pay', { method: 'POST' })
+          .then(function () { FM.toast('Order #' + id + ' paid'); load(); })
+          .catch(function (e) { FM.toast(e.message, false); });
+      });
+    }
+  }
+  function load() {
+    FM.api('/api/orders').then(function (orders) { allOrders = orders; render(); })
+      .catch(function (e) { FM.el('orders').innerHTML = '<tr><td class="p-3 text-red-600" colspan="7">' + FM.esc(e.message) + '</td></tr>'; });
+  }
+  FM.el('only-new').addEventListener('change', render);
+  FM.el('refresh').addEventListener('click', load);
+  load();
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>

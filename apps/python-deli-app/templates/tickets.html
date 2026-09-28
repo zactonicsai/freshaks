@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Fresh Mart Deli — kitchen board{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold text-stone-900">🍳 Kitchen board</h1>
+<p class="text-stone-600 mt-1">Cashiers and managers see every ticket and mark it done.</p>
+<div class="card mt-6 overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-stone-50 text-stone-500 text-left"><tr><th class="p-3 font-medium">#</th><th class="p-3 font-medium">Customer</th><th class="p-3 font-medium">Item</th><th class="p-3 font-medium">Notes</th><th class="p-3 font-medium">Status</th><th class="p-3"></th></tr></thead>
+    <tbody>
+    {% for t in tickets %}
+      <tr class="border-t border-stone-100" data-testid="ticket-row"><td class="p-3">{{ t.id }}</td><td class="p-3">{{ t.customer }}</td><td class="p-3">{{ t.item }}</td><td class="p-3 text-stone-500">{{ t.notes }}</td>
+        <td class="p-3 font-semibold {{ 'text-accent' if t.status == 'DONE' else 'text-brand' }}">{{ t.status }}</td>
+        <td class="p-3 text-right">
+          {% if t.status != 'DONE' %}
+          <form method="post" action="{{ url_for('main.ticket_done', ticket_id=t.id) }}"><button class="px-3 py-1.5 rounded-lg bg-accent text-white font-medium">Mark done</button></form>
+          {% else %}<span class="text-xs text-stone-400">by {{ t.done_by }}</span>{% endif %}
+        </td></tr>
+    {% else %}
+      <tr><td class="p-3 text-stone-500" colspan="6">The board is empty.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Fresh Mart — welcome</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: { brand: "#1F7A4D", "brand-dark": "#165C3A", cream: "#FBF8F1", accent: "#E07A2F" } } } };
+</script>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/app.js"></script>
+</head>
+<body class="bg-cream text-stone-800 min-h-screen">
+<nav id="nav" class="bg-white border-b border-stone-200"></nav>
+
+<main class="max-w-5xl mx-auto px-4 py-12">
+  <section class="grid md:grid-cols-2 gap-10 items-center">
+    <div>
+      <p class="text-accent font-semibold tracking-wide uppercase text-xs mb-3">Java store · Spring Boot + Keycloak</p>
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight text-stone-900">Welcome to <span class="text-brand">Fresh Mart</span></h1>
+      <p class="mt-4 text-lg text-stone-600">
+        A small grocery store that shows how <strong>login (OIDC)</strong>, <strong>badges (roles)</strong> and a
+        <strong>notebook of everything that happens (activity log)</strong> fit together.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="/oauth2/authorization/keycloak" class="px-5 py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark">Log in at the front office</a>
+        <a href="/app/shop.html" class="px-5 py-3 rounded-xl border border-stone-300 font-semibold hover:bg-white">Go shopping</a>
+      </div>
+      <p class="mt-6 text-sm text-stone-500">Try <code>sam.shopper</code>, <code>casey.cashier</code> or <code>morgan.manager</code> — each badge opens different doors.</p>
+    </div>
+    <div class="card p-6">
+      <h2 class="font-semibold text-stone-900 mb-3">Store information <span class="text-xs text-stone-400 font-normal">(public API, no badge needed)</span></h2>
+      <dl id="store-info" class="text-sm space-y-2 text-stone-600">Loading…</dl>
+      <h3 class="font-semibold text-stone-900 mt-6 mb-2">Who can open which door?</h3>
+      <table class="text-sm w-full">
+        <tr class="text-stone-500"><th class="text-left font-medium py-1">Door</th><th class="text-left font-medium">Badge needed</th></tr>
+        <tr><td class="py-1">🛒 Shop &amp; order</td><td>any logged-in person</td></tr>
+        <tr><td class="py-1">🧾 Cash register</td><td>cashier or manager</td></tr>
+        <tr><td class="py-1">📊 Manager's office</td><td>manager</td></tr>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  FM.api('/api/public/store-info', { noRedirect: true }).then(function (info) {
+    FM.el('store-info').innerHTML =
+      '<div><dt class="inline font-medium text-stone-800">Name:</dt> <dd class="inline">' + FM.esc(info.name) + '</dd></div>' +
+      '<div><dt class="inline font-medium text-stone-800">Slogan:</dt> <dd class="inline">' + FM.esc(info.slogan) + '</dd></div>' +
+      '<div><dt class="inline font-medium text-stone-800">Hours:</dt> <dd class="inline">' + FM.esc(info.hours) + '</dd></div>';
+  }).catch(function (e) { FM.el('store-info').textContent = 'Store info unavailable: ' + e.message; });
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>

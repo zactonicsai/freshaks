@@ -1,0 +1,70 @@
+# =============================================================================
+#  values.yaml — the ingredient list for the Keycloak recipe (Helm chart).
+#  scripts/05-install-keycloak.sh writes values-generated.yaml on top of this.
+# =============================================================================
+replicaCount: 1                    # keep 1 (we use the local cache; see docs/03)
+
+image:
+  repository: quay.io/keycloak/keycloak
+  tag: "26.3"
+  pullPolicy: IfNotPresent
+
+# The address people use in the browser (full URL, with http:// or https://)
+hostname: "http://keycloak.localtest.me"
+httpEnabled: true                  # we sit behind ingress-nginx, which talks http to us
+proxyHeaders: xforwarded           # trust X-Forwarded-* headers from the ingress
+logLevel: info
+
+admin:
+  username: admin
+  password: admin                  # overridden by values-generated.yaml
+
+database:
+  vendor: postgres
+  host: postgres.data.svc.cluster.local
+  port: 5432
+  name: keycloak
+  username: keycloak
+  password: keycloak               # overridden by values-generated.yaml
+
+# Realm import: every file in helm/keycloak/realms/*.json is loaded on FIRST start.
+# The __PLACEHOLDERS__ inside those files are replaced with the values below.
+realm:
+  import: true
+  baseDomain: localtest.me
+  proto: http
+  sslRequired: none                # "none" for plain http demos, "external" when TLS is on
+  demoPassword: password123
+  javaClientSecret: java-app-secret-change-me
+  pythonClientSecret: python-app-secret-change-me
+
+extraEnv: []                       # e.g. - {name: KC_LOG_LEVEL, value: debug}
+extraArgs: []                      # extra flags for "kc.sh start"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  host: keycloak.localtest.me
+  annotations: {}
+  tls:
+    enabled: false
+    clusterIssuer: letsencrypt-prod
+    secretName: ""                 # empty = <release>-tls
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    memory: 1536Mi
+
+startupProbe:
+  failureThreshold: 90             # 90 x 5s = up to 7.5 minutes for the first (slow) start
+  periodSeconds: 5
+
+nodeSelector: {}
+tolerations: []

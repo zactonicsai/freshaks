@@ -1,0 +1,14 @@
+# generated at run time (contains IPs, secrets, cluster-specific values)
+scripts/.generated.env
+helm/keycloak/values-generated.yaml
+.rendered/
+# build output
+apps/java-grocery-app/target/
+apps/python-deli-app/__pycache__/
+apps/python-deli-app/**/__pycache__/
+apps/python-deli-app/*.db
+tests/playwright/node_modules/
+tests/playwright/test-results/
+tests/playwright/playwright-report/
+tests/go-client/go-client
+*.pyc

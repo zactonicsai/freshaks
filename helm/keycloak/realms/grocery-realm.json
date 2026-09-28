@@ -1,0 +1,287 @@
+{
+  "_comment": "Fresh Mart realm. __PLACEHOLDERS__ are filled by the Helm chart (helm/keycloak/templates/configmap-realms.yaml). Imported on the first Keycloak start; use tools/reimport-realm.sh after edits.",
+  "realm": "grocery",
+  "displayName": "Fresh Mart",
+  "displayNameHtml": "<b>Fresh Mart</b> grocery",
+  "enabled": true,
+  "sslRequired": "__SSL_REQUIRED__",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "rememberMe": true,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "defaultRole": {
+    "name": "default-roles-grocery",
+    "description": "${role_default-roles}",
+    "composite": true,
+    "clientRole": false
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "default-roles-grocery",
+        "description": "${role_default-roles}",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization",
+            "shopper"
+          ]
+        },
+        "clientRole": false
+      },
+      {
+        "name": "offline_access",
+        "description": "${role_offline-access}",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "uma_authorization",
+        "description": "${role_uma_authorization}",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "shopper",
+        "description": "Can browse products and place orders (everyone gets this badge)",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "cashier",
+        "description": "Can see every order and mark orders as paid",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "manager",
+        "description": "Can edit products, read reports and the activity log",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "shoppers",
+      "path": "/shoppers",
+      "realmRoles": [
+        "shopper"
+      ],
+      "attributes": {},
+      "subGroups": []
+    },
+    {
+      "name": "cashiers",
+      "path": "/cashiers",
+      "realmRoles": [
+        "cashier"
+      ],
+      "attributes": {},
+      "subGroups": []
+    },
+    {
+      "name": "managers",
+      "path": "/managers",
+      "realmRoles": [
+        "manager",
+        "cashier"
+      ],
+      "attributes": {},
+      "subGroups": []
+    }
+  ],
+  "users": [
+    {
+      "username": "sam.shopper",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Sam",
+      "lastName": "Shopper",
+      "email": "sam.shopper@freshmart.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "__DEMO_PASSWORD__",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/shoppers"
+      ],
+      "requiredActions": []
+    },
+    {
+      "username": "casey.cashier",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Casey",
+      "lastName": "Cashier",
+      "email": "casey.cashier@freshmart.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "__DEMO_PASSWORD__",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/cashiers"
+      ],
+      "requiredActions": []
+    },
+    {
+      "username": "morgan.manager",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Morgan",
+      "lastName": "Manager",
+      "email": "morgan.manager@freshmart.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "__DEMO_PASSWORD__",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/managers"
+      ],
+      "requiredActions": []
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "grocery-java-app",
+      "name": "Fresh Mart Store (Java / Spring Boot)",
+      "description": "Browser login for the Java store. Also validates bearer tokens for its /api.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "__JAVA_CLIENT_SECRET__",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "rootUrl": "__PROTO__://java.__BASE_DOMAIN__",
+      "baseUrl": "/",
+      "redirectUris": [
+        "__PROTO__://java.__BASE_DOMAIN__/*",
+        "http://localhost:8080/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "grocery-python-app",
+      "name": "Fresh Mart Deli (Python / Flask)",
+      "description": "Browser login for the Python deli. Also validates bearer tokens for its /api.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "__PYTHON_CLIENT_SECRET__",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "rootUrl": "__PROTO__://python.__BASE_DOMAIN__",
+      "baseUrl": "/",
+      "redirectUris": [
+        "__PROTO__://python.__BASE_DOMAIN__/*",
+        "http://localhost:5000/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "grocery-test-client",
+      "name": "Inspectors (Go / curl tests)",
+      "description": "Public client with 'direct access grants' so test scripts can trade a username+password for a token.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [],
+      "webOrigins": [],
+      "attributes": {},
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

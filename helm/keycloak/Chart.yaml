@@ -1,0 +1,7 @@
+apiVersion: v2
+name: keycloak
+description: Fresh Mart front office — a small, readable Keycloak chart with realm import
+type: application
+version: 0.1.0
+appVersion: "26.3"
+keywords: [keycloak, oidc, sso]

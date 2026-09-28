@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Fresh Mart Deli — wrong badge{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto text-center py-10">
+  <div class="text-6xl">🚪🔒</div>
+  <h1 class="text-3xl font-bold text-stone-900 mt-4">This door needs a different badge</h1>
+  <p class="text-stone-600 mt-3">You are logged in, but your role does not open this page. Cashiers see the kitchen board; managers see the notebook.</p>
+  <div class="mt-8 flex justify-center gap-3">
+    <a href="{{ url_for('main.index') }}" class="px-5 py-2.5 rounded-xl bg-brand text-white font-semibold">Back to the menu</a>
+    <a href="{{ url_for('main.me') }}" class="px-5 py-2.5 rounded-xl border border-stone-300 font-semibold">See my badge</a>
+  </div>
+</div>
+{% endblock %}

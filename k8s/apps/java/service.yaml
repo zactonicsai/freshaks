@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-store
+  namespace: ${NS_APPS}
+spec:
+  selector: {app: java-store}
+  ports:
+    - {name: http, port: 80, targetPort: http}

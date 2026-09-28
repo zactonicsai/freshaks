@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: playwright-tests
+  namespace: ${NS_TESTS}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: {app: playwright-tests}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: playwright
+          # Microsoft's image already contains the browsers; we only add the test runner package.
+          image: mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -e
+              mkdir -p /work && cp /tests/* /work/ && cd /work
+              npm install --no-fund --no-audit --loglevel=error "@playwright/test@${PLAYWRIGHT_VERSION}"
+              npx playwright test --reporter=list
+          envFrom:
+            - secretRef: {name: test-config}
+          env:
+            - {name: CI, value: "true"}
+          volumeMounts:
+            - {name: tests, mountPath: /tests}
+          resources:
+            requests: {cpu: 500m, memory: 1Gi}
+            limits: {memory: 2Gi}
+      volumes:
+        - name: tests
+          configMap: {name: playwright-tests}

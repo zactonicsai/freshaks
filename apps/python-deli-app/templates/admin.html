@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Fresh Mart Deli — notebook{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold text-stone-900">📓 Activity notebook</h1>
+<p class="text-stone-600 mt-1">Manager only. Both apps write into this same table, so you also see the Java store here.</p>
+<div class="card mt-6 overflow-x-auto">
+  <table class="w-full text-xs">
+    <thead class="bg-stone-50 text-stone-500 text-left"><tr><th class="p-2 font-medium">When</th><th class="p-2 font-medium">Service</th><th class="p-2 font-medium">Who</th><th class="p-2 font-medium">Action</th><th class="p-2 font-medium">Method</th><th class="p-2 font-medium">Path</th><th class="p-2 font-medium">Status</th><th class="p-2 font-medium">Details</th></tr></thead>
+    <tbody>
+    {% for a in activity %}
+      <tr class="border-t border-stone-100" data-testid="activity-row"><td class="p-2 whitespace-nowrap text-stone-500">{{ a.occurred_at }}</td><td class="p-2">{{ a.service }}</td><td class="p-2 font-medium">{{ a.actor }}</td>
+        <td class="p-2">{{ a.action }}</td><td class="p-2">{{ a.method or '' }}</td><td class="p-2">{{ a.path or '' }}</td><td class="p-2">{{ a.status or '' }}</td><td class="p-2 text-stone-500">{{ a.details or '' }}</td></tr>
+    {% else %}
+      <tr><td class="p-2 text-stone-500" colspan="8">Nothing written yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

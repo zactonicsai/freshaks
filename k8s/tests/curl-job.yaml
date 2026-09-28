@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: curl-tests
+  namespace: ${NS_TESTS}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: {app: curl-tests}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: curl
+          image: curlimages/curl:8.10.1
+          command: ["sh", "/tests/run-tests.sh"]
+          envFrom:
+            - secretRef: {name: test-config}
+          volumeMounts:
+            - {name: tests, mountPath: /tests}
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {memory: 128Mi}
+      volumes:
+        - name: tests
+          configMap: {name: curl-tests}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Fresh Mart — my badge</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: { brand: "#1F7A4D", "brand-dark": "#165C3A", cream: "#FBF8F1", accent: "#E07A2F" } } } };
+</script>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/app.js"></script>
+</head>
+<body class="bg-cream text-stone-800 min-h-screen">
+<nav id="nav" class="bg-white border-b border-stone-200"></nav>
+
+<main class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-stone-900">🪪 My badge</h1>
+  <p class="text-stone-600 mt-1">This is what Keycloak told the store about you when you logged in.</p>
+
+  <div class="card p-6 mt-6 grid sm:grid-cols-2 gap-6">
+    <div>
+      <div class="text-xs uppercase tracking-wide text-stone-500">Username</div>
+      <div id="badge-username" class="text-xl font-bold text-stone-900 mt-1">…</div>
+      <div class="text-xs uppercase tracking-wide text-stone-500 mt-4">Name</div>
+      <div id="badge-name" class="text-stone-800 mt-1">…</div>
+      <div class="text-xs uppercase tracking-wide text-stone-500 mt-4">Email</div>
+      <div id="badge-email" class="text-stone-800 mt-1">…</div>
+    </div>
+    <div>
+      <div class="text-xs uppercase tracking-wide text-stone-500">Roles (badges)</div>
+      <div id="badge-roles" class="mt-2 flex flex-wrap gap-2">…</div>
+      <div class="text-xs uppercase tracking-wide text-stone-500 mt-4">Which doors open for me?</div>
+      <ul id="doors" class="mt-2 text-sm space-y-1"></ul>
+    </div>
+  </div>
+
+  <details class="card p-5 mt-6 text-sm">
+    <summary class="cursor-pointer font-medium text-stone-900">Raw answer from <code>/api/me</code></summary>
+    <pre id="raw" class="mt-3 text-xs bg-stone-50 p-3 rounded-lg overflow-x-auto"></pre>
+  </details>
+</main>
+
+<script>
+  FM.api('/api/me').then(function (me) {
+    var roles = me.roles || [];
+    FM.el('badge-username').textContent = me.username;
+    FM.el('badge-name').textContent = me.name || '—';
+    FM.el('badge-email').textContent = me.email || '—';
+    FM.el('badge-roles').innerHTML = roles.length ? roles.map(function (r) {
+      return '<span class="px-3 py-1 rounded-full bg-brand text-white text-sm font-medium" data-testid="role-badge">' + FM.esc(r) + '</span>';
+    }).join('') : '<span class="text-stone-500">no roles — you can still shop</span>';
+    var has = function (r) { return roles.indexOf(r) !== -1; };
+    var doors = [
+      ['🛒 Shop', '/app/shop.html', true],
+      ['🧾 Cash register', '/app/register.html', has('cashier') || has('manager')],
+      ['📊 Manager\'s office', '/app/office.html', has('manager')]
+    ];
+    FM.el('doors').innerHTML = doors.map(function (d) {
+      return '<li><a class="underline" href="' + d[1] + '">' + d[0] + '</a> — ' +
+        (d[2] ? '<span class="text-brand font-medium">opens</span>' : '<span class="text-accent font-medium">locked (try it!)</span>') + '</li>';
+    }).join('');
+    FM.el('raw').textContent = JSON.stringify(me, null, 2);
+  }).catch(function (e) { FM.el('badge-username').textContent = e.message; });
+</script>
+<script src="/js/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "freshmart-playwright-inspector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A robot browser that logs in as each demo user and checks which doors open",
+  "scripts": {
+    "test": "playwright test --reporter=list",
+    "list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.47.2"
+  }
+}

@@ -1,0 +1,3 @@
+/* Small extras on top of Tailwind (the CDN build reads the tailwind.config in each page). */
+.receipt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.card { background: #fff; border: 1px solid #e7e2d7; border-radius: 1rem; }

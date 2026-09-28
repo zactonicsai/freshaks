@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Fresh Mart Deli — my badge{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold text-stone-900">🪪 My badge</h1>
+<div class="card p-6 mt-6 grid sm:grid-cols-2 gap-6 max-w-3xl">
+  <div>
+    <div class="text-xs uppercase tracking-wide text-stone-500">Username</div>
+    <div id="badge-username" class="text-xl font-bold text-stone-900 mt-1">{{ ident.username }}</div>
+    <div class="text-xs uppercase tracking-wide text-stone-500 mt-4">Name</div><div class="mt-1">{{ ident.name or '—' }}</div>
+    <div class="text-xs uppercase tracking-wide text-stone-500 mt-4">Email</div><div class="mt-1">{{ ident.email or '—' }}</div>
+  </div>
+  <div>
+    <div class="text-xs uppercase tracking-wide text-stone-500">Roles (badges)</div>
+    <div id="badge-roles" class="mt-2 flex flex-wrap gap-2">
+      {% for r in ident.roles %}<span class="px-3 py-1 rounded-full bg-brand text-white text-sm font-medium" data-testid="role-badge">{{ r }}</span>{% else %}<span class="text-stone-500">no roles</span>{% endfor %}
+    </div>
+    <div class="text-xs uppercase tracking-wide text-stone-500 mt-4">Doors</div>
+    <ul class="mt-2 text-sm space-y-1">
+      <li><a class="underline" href="{{ url_for('main.order') }}">🎫 Order</a> — <span class="text-accent font-medium">opens</span></li>
+      <li><a class="underline" href="{{ url_for('main.tickets') }}">🍳 Kitchen board</a> — {% if has_role(ident, 'cashier', 'manager') %}<span class="text-accent font-medium">opens</span>{% else %}<span class="text-brand font-medium">locked (try it!)</span>{% endif %}</li>
+      <li><a class="underline" href="{{ url_for('main.admin') }}">📓 Notebook</a> — {% if has_role(ident, 'manager') %}<span class="text-accent font-medium">opens</span>{% else %}<span class="text-brand font-medium">locked (try it!)</span>{% endif %}</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

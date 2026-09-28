@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-deli
+  namespace: ${NS_APPS}
+  labels: {app: python-deli}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: python-deli}
+  template:
+    metadata:
+      labels: {app: python-deli}
+    spec:
+      containers:
+        - name: python-deli
+          image: ${REGISTRY}/freshmart/python-deli:${IMAGE_TAG}
+          ports:
+            - {name: http, containerPort: 5000}
+          env:
+            - {name: OIDC_ISSUER, value: "${KEYCLOAK_PUBLIC_URL}/realms/${KC_REALM}"}
+            - {name: OIDC_CLIENT_ID, value: "grocery-python-app"}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: oidc-secrets, key: PYTHON_CLIENT_SECRET}}
+            - name: SECRET_KEY
+              valueFrom: {secretKeyRef: {name: oidc-secrets, key: FLASK_SECRET_KEY}}
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: app-db-secret, key: DATABASE_URL}}
+            - {name: PUBLIC_URL, value: "${PYTHON_URL}"}
+            - {name: PREFERRED_URL_SCHEME, value: "${PROTO}"}
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}

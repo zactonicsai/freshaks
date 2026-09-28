@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Fresh Mart — wrong badge</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: { brand: "#1F7A4D", "brand-dark": "#165C3A", cream: "#FBF8F1", accent: "#E07A2F" } } } };
+</script>
+<link rel="stylesheet" href="/css/site.css">
+<script src="/js/app.js"></script>
+</head>
+<body class="bg-cream text-stone-800 min-h-screen">
+<nav id="nav" class="bg-white border-b border-stone-200"></nav>
+
+<main class="max-w-2xl mx-auto px-4 py-16 text-center">
+  <div class="text-6xl">🚪🔒</div>
+  <h1 class="text-3xl font-bold text-stone-900 mt-4">This door needs a different badge</h1>
+  <p class="text-stone-600 mt-3">You are logged in, but your role does not open this page.
+     A cashier badge opens the register; a manager badge opens the office.</p>
+  <div class="mt-8 flex justify-center gap-3">
+    <a href="/app/shop.html" class="px-5 py-2.5 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark">Back to the shop</a>
+    <a href="/app/me.html" class="px-5 py-2.5 rounded-xl border border-stone-300 font-semibold hover:bg-white">See my badge</a>
+  </div>
+</main>
+<script src="/js/nav.js"></script>
+</body>
+</html>

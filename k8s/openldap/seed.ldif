@@ -1,0 +1,54 @@
+# The phone book's first pages. Rendered by envsubst (the ${...} parts) and loaded on first start.
+# People live under ou=people, teams under ou=groups. Keycloak reads BOTH (scripts/06).
+
+dn: ou=people,${LDAP_BASE_DN}
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,${LDAP_BASE_DN}
+objectClass: organizationalUnit
+ou: groups
+
+dn: uid=alex.ldap,ou=people,${LDAP_BASE_DN}
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: alex.ldap
+cn: Alex Ldap
+givenName: Alex
+sn: Ldap
+mail: alex.ldap@${LDAP_DOMAIN}
+userPassword: ${DEMO_USER_PASSWORD}
+
+dn: uid=jordan.ldap,ou=people,${LDAP_BASE_DN}
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: jordan.ldap
+cn: Jordan Ldap
+givenName: Jordan
+sn: Ldap
+mail: jordan.ldap@${LDAP_DOMAIN}
+userPassword: ${DEMO_USER_PASSWORD}
+
+dn: uid=riley.ldap,ou=people,${LDAP_BASE_DN}
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+uid: riley.ldap
+cn: Riley Ldap
+givenName: Riley
+sn: Ldap
+mail: riley.ldap@${LDAP_DOMAIN}
+userPassword: ${DEMO_USER_PASSWORD}
+
+# Teams. Same names as the Keycloak groups, so the group mapper links them.
+dn: cn=cashiers,ou=groups,${LDAP_BASE_DN}
+objectClass: groupOfNames
+cn: cashiers
+member: uid=jordan.ldap,ou=people,${LDAP_BASE_DN}
+
+dn: cn=managers,ou=groups,${LDAP_BASE_DN}
+objectClass: groupOfNames
+cn: managers
+member: uid=riley.ldap,ou=people,${LDAP_BASE_DN}

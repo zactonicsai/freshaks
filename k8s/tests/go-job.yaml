@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: go-client-tests
+  namespace: ${NS_TESTS}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: {app: go-client-tests}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: go-client
+          image: ${REGISTRY}/freshmart/go-client:${IMAGE_TAG}
+          envFrom:
+            - secretRef: {name: test-config}
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {memory: 128Mi}

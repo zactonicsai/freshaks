@@ -1,0 +1,60 @@
+# Settings for the Java store. Values like ${OIDC_ISSUER} come from environment
+# variables (set in k8s/apps/java/deployment.yaml); the part after ":" is a local default.
+server:
+  port: 8080
+  forward-headers-strategy: framework   # trust X-Forwarded-* from ingress-nginx (correct redirect URLs)
+
+spring:
+  application:
+    name: java-store
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/grocery}
+    username: ${DB_USER:grocery}
+    password: ${DB_PASSWORD:grocery}
+  jpa:
+    hibernate:
+      ddl-auto: none                    # tables come from schema.sql, not from Hibernate guesses
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  sql:
+    init:
+      mode: always                      # run schema.sql + data.sql on every start (they are safe to repeat)
+      encoding: UTF-8
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:                     # browser login (OpenID Connect "authorization code" flow)
+            client-id: ${OIDC_CLIENT_ID:grocery-java-app}
+            client-secret: ${OIDC_CLIENT_SECRET:change-me}
+            authorization-grant-type: authorization_code
+            scope: openid,profile,email
+            client-name: Fresh Mart Front Office
+        provider:
+          keycloak:
+            issuer-uri: ${OIDC_ISSUER:http://localhost:8180/realms/grocery}
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:                            # API calls with "Authorization: Bearer <token>"
+          issuer-uri: ${OIDC_ISSUER:http://localhost:8180/realms/grocery}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+freshmart:
+  service-name: java-store
+  roles-claim: roles                    # the token claim that carries the badge names
+
+logging:
+  level:
+    org.springframework.security: INFO

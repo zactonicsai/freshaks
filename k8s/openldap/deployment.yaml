@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openldap
+  namespace: ${NS_IDENTITY}
+  labels: {app: openldap}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: openldap}
+  template:
+    metadata:
+      labels: {app: openldap}
+    spec:
+      containers:
+        - name: openldap
+          image: osixia/openldap:1.5.0
+          args: ["--copy-service", "--loglevel", "info"]
+          env:
+            - {name: LDAP_ORGANISATION, value: "${LDAP_ORGANISATION}"}
+            - {name: LDAP_DOMAIN, value: "${LDAP_DOMAIN}"}
+            - {name: LDAP_TLS, value: "false"}
+            - {name: LDAP_RFC2307BIS_SCHEMA, value: "false"}
+            - name: LDAP_ADMIN_PASSWORD
+              valueFrom: {secretKeyRef: {name: openldap-secret, key: LDAP_ADMIN_PASSWORD}}
+          ports:
+            - {name: ldap, containerPort: 389}
+          volumeMounts:
+            - name: seed
+              mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom
+          readinessProbe:
+            exec:
+              command: ["ldapsearch", "-x", "-H", "ldap://localhost", "-b", "", "-s", "base"]
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 256Mi}
+      volumes:
+        - name: seed
+          configMap: {name: openldap-seed}

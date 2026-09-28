@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Fresh Mart Deli — order{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold text-stone-900">🎫 Place a deli ticket</h1>
+<p class="text-stone-600 mt-1">Any logged-in person can order. The kitchen (cashiers and managers) marks tickets done.</p>
+
+{% if placed %}<p id="ticket-message" class="mt-4 text-accent font-medium">Ticket #{{ placed }} is on the board — the kitchen will call your name.</p>{% endif %}
+{% if error %}<p class="mt-4 text-red-600 font-medium">{{ error }}</p>{% endif %}
+
+<form method="post" class="card p-5 mt-6 grid sm:grid-cols-3 gap-3 text-sm">
+  <select name="item" class="border border-stone-300 rounded-lg px-3 py-2" required>
+    {% for m in menu %}<option value="{{ m.item }}">{{ m.emoji }} {{ m.item }} — ${{ '%.2f'|format(m.price) }}</option>{% endfor %}
+  </select>
+  <input name="notes" placeholder="Notes (no onions…)" class="border border-stone-300 rounded-lg px-3 py-2">
+  <button id="place-ticket" class="px-4 py-2 rounded-lg bg-brand text-white font-semibold hover:bg-brand-dark">Order</button>
+</form>
+
+<h2 class="text-xl font-semibold text-stone-900 mt-10">My tickets</h2>
+<div class="card mt-3 overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-stone-50 text-stone-500 text-left"><tr><th class="p-3 font-medium">#</th><th class="p-3 font-medium">Item</th><th class="p-3 font-medium">Notes</th><th class="p-3 font-medium">Status</th><th class="p-3 font-medium">Placed</th></tr></thead>
+    <tbody>
+    {% for t in tickets or [] %}
+      <tr class="border-t border-stone-100" data-testid="my-ticket"><td class="p-3">{{ t.id }}</td><td class="p-3">{{ t.item }}</td><td class="p-3 text-stone-500">{{ t.notes }}</td>
+        <td class="p-3 font-semibold {{ 'text-accent' if t.status == 'DONE' else 'text-brand' }}">{{ t.status }}</td><td class="p-3 text-stone-500">{{ t.created_at }}</td></tr>
+    {% else %}
+      <tr><td class="p-3 text-stone-500" colspan="5">No tickets yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

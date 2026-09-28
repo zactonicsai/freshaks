@@ -1,0 +1,8 @@
+Keycloak ({{ .Values.image.tag }}) is starting in namespace {{ .Release.Namespace }}.
+
+  Admin console : {{ .Values.hostname }}/admin/   (user: {{ .Values.admin.username }})
+  Realm files   : helm/keycloak/realms/*.json (imported on first start only)
+  Re-import     : tools/reimport-realm.sh   (after editing the realm JSON)
+  Admin CLI     : tools/kcadm.sh get users -r grocery
+
+Watch it come up:   kubectl -n {{ .Release.Namespace }} logs deploy/{{ .Release.Name }} -f

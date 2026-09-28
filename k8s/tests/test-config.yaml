@@ -1,0 +1,14 @@
+# Everything an inspector needs to know, in one Secret (envFrom in each Job).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-config
+  namespace: ${NS_TESTS}
+type: Opaque
+stringData:
+  KEYCLOAK_URL: "${KEYCLOAK_PUBLIC_URL}"
+  KC_REALM: "${KC_REALM}"
+  TEST_CLIENT_ID: "grocery-test-client"
+  JAVA_URL: "${JAVA_URL}"
+  PYTHON_URL: "${PYTHON_URL}"
+  DEMO_USER_PASSWORD: "${DEMO_USER_PASSWORD}"

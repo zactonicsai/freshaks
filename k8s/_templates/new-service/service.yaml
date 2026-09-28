@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${SERVICE_NAME}
+  namespace: ${NS_APPS}
+spec:
+  selector: {app: ${SERVICE_NAME}}
+  ports:
+    - {name: http, port: 80, targetPort: http}

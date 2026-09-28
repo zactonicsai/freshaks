@@ -1,0 +1,32 @@
+{
+  "name": "freshmart-ldap",
+  "providerId": "ldap",
+  "providerType": "org.keycloak.storage.UserStorageProvider",
+  "parentId": "__REALM_ID__",
+  "config": {
+    "enabled": ["true"],
+    "priority": ["0"],
+    "editMode": ["READ_ONLY"],
+    "syncRegistrations": ["false"],
+    "importEnabled": ["true"],
+    "vendor": ["other"],
+    "usernameLDAPAttribute": ["uid"],
+    "rdnLDAPAttribute": ["uid"],
+    "uuidLDAPAttribute": ["entryUUID"],
+    "userObjectClasses": ["inetOrgPerson, organizationalPerson"],
+    "connectionUrl": ["${LDAP_URL}"],
+    "usersDn": ["ou=people,${LDAP_BASE_DN}"],
+    "searchScope": ["1"],
+    "authType": ["simple"],
+    "bindDn": ["cn=admin,${LDAP_BASE_DN}"],
+    "bindCredential": ["${LDAP_ADMIN_PASSWORD}"],
+    "useTruststoreSpi": ["ldapsOnly"],
+    "connectionPooling": ["true"],
+    "pagination": ["false"],
+    "trustEmail": ["true"],
+    "batchSizeForSync": ["1000"],
+    "fullSyncPeriod": ["-1"],
+    "changedSyncPeriod": ["-1"],
+    "cachePolicy": ["DEFAULT"]
+  }
+}

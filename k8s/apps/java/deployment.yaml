@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-store
+  namespace: ${NS_APPS}
+  labels: {app: java-store}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: java-store}
+  template:
+    metadata:
+      labels: {app: java-store}
+    spec:
+      containers:
+        - name: java-store
+          image: ${REGISTRY}/freshmart/java-store:${IMAGE_TAG}
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            - {name: OIDC_ISSUER, value: "${KEYCLOAK_PUBLIC_URL}/realms/${KC_REALM}"}
+            - {name: OIDC_CLIENT_ID, value: "grocery-java-app"}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: oidc-secrets, key: JAVA_CLIENT_SECRET}}
+            - name: DB_URL
+              valueFrom: {secretKeyRef: {name: app-db-secret, key: DB_URL}}
+            - name: DB_USER
+              valueFrom: {secretKeyRef: {name: app-db-secret, key: DB_USER}}
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: app-db-secret, key: DB_PASSWORD}}
+            - {name: JAVA_TOOL_OPTIONS, value: "-XX:MaxRAMPercentage=75"}
+          startupProbe:
+            httpGet: {path: /actuator/health, port: http}
+            failureThreshold: 60
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: {path: /actuator/health, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {memory: 1Gi}

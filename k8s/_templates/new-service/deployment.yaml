@@ -1,0 +1,43 @@
+# Starter manifests for a NEW OIDC service. tools/add-service.sh copies this folder to k8s/apps/<name>/
+# and fills in ${SERVICE_NAME}, ${CLIENT_ID}, ${CLIENT_SECRET} when you deploy.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${SERVICE_NAME}
+  namespace: ${NS_APPS}
+  labels: {app: ${SERVICE_NAME}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: ${SERVICE_NAME}}
+  template:
+    metadata:
+      labels: {app: ${SERVICE_NAME}}
+    spec:
+      containers:
+        - name: ${SERVICE_NAME}
+          image: ${REGISTRY}/freshmart/${SERVICE_NAME}:${IMAGE_TAG}
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            - {name: OIDC_ISSUER, value: "${KEYCLOAK_PUBLIC_URL}/realms/${KC_REALM}"}
+            - {name: OIDC_CLIENT_ID, value: "${CLIENT_ID}"}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: oidc-secret-${SERVICE_NAME}, key: CLIENT_SECRET}}
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: app-db-secret, key: DATABASE_URL}}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oidc-secret-${SERVICE_NAME}
+  namespace: ${NS_APPS}
+type: Opaque
+stringData:
+  CLIENT_SECRET: "${CLIENT_SECRET}"

@@ -61,7 +61,7 @@ signed it. [Doc 04](04-how-login-works-oidc.md) walks through this slowly.
 6. [06 · LDAP, the phone book](06-ldap-the-phone-book.md) — users that live somewhere else.
 7. [07 · The Java store](07-java-store-app.md) and [08 · The Python deli](08-python-deli-app.md).
 8. [09 · Adding a new service](09-adding-a-new-service.md) and [10 · Changing settings](10-changing-settings.md).
-9. [11 · Testing with the inspectors](11-testing-the-inspectors.md) and [12 · Troubleshooting](12-troubleshooting.md).
+9. [11 · Testing with the inspectors](11-testing-the-inspectors.md), [12 · Troubleshooting](12-troubleshooting.md) and [13 · Connecting to the pods](13-connecting-to-pods.md).
 10. Tutorials: [add a "stocker" role](tutorials/tutorial-add-a-stocker-role.md), [add an LDAP user](tutorials/tutorial-add-an-ldap-user.md).
 
 ## Why these choices? (pros and cons, honestly)

@@ -1,6 +1,7 @@
 # 12 · Troubleshooting (when a door is stuck)
 
 Golden rule: **read the pod's log first.** `kubectl -n <ns> logs <pod>` tells you 90% of the story.
+To look inside a pod use `tools/shell.sh <target>`; to open Keycloak/Postgres/LDAP on your desktop use `tools/forward.sh` (doc 13).
 
 ## Finding things
 
@@ -79,8 +80,15 @@ A previous install was interrupted: `helm -n identity rollback keycloak` or `hel
 * Rate limit hit (5 per host per week) — wait, or use the staging issuer while experimenting.
 
 ### Costs keep coming
-`scripts/99-destroy.sh` deletes the resource group. Check with `az group list -o table`.
-`az aks stop` pauses a cluster you want to keep (the load balancer IP is kept; VMs stop billing).
+`scripts/99-destroy.sh` removes everything in reverse order and ends by deleting the resource group; run it again if
+a step failed (already-deleted things are skipped). Check with `az group list -o table` and
+`az resource list -g freshmart-rg -o table`. `az aks stop` pauses a cluster you want to keep (the load balancer IP
+is kept; VMs stop billing).
+
+### `99-destroy.sh` hangs on "delete namespace …"
+A namespace with a stuck finalizer (usually a cert-manager Challenge). Wait for the 3-minute timeout — the script
+continues — then `kubectl get ns <name> -o json | jq '.spec.finalizers=[]' | kubectl replace --raw /api/v1/namespaces/<name>/finalize -f -`,
+or simply let `az group delete` (the last step) remove the whole cluster.
 
 ## Reset buttons
 
@@ -89,4 +97,5 @@ A previous install was interrupted: `helm -n identity rollback keycloak` or `hel
 | Keycloak realm | `tools/reimport-realm.sh` (overwrite) or delete the realm in the console and restart the pod (`kubectl -n identity rollout restart deploy/keycloak`) to re-import |
 | Apps | `kubectl -n apps rollout restart deploy/java-store deploy/python-deli` |
 | Notebook | `kubectl -n data exec -it postgres-0 -- psql -U grocery -d grocery -c 'TRUNCATE activity_log'` |
+| Cluster contents only | `scripts/99-destroy.sh --keep-cluster` then start again from 02 |
 | Everything | `scripts/99-destroy.sh` then start again from 01 |

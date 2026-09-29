@@ -143,8 +143,26 @@ Prints URLs, pods per namespace, ingresses and the user list. Handy after a coff
 
 ## Step 99 — clean up: `scripts/99-destroy.sh`
 
-Deletes the resource group (cluster, registry, IPs, disks — everything) and `scripts/.generated.env`. It asks
-for confirmation. **This is what stops the bill.**
+Takes everything down **in the reverse order it was built**, one step at a time:
+
+```
+tests → apps → keycloak (helm) → openldap → postgres (+disk) → cert-manager → ingress-nginx (public IP)
+      → node pool 'apps' → AKS cluster → container registry → resource group → local files
+```
+
+Every step ignores "not found" — so you can run it twice, or after a setup that stopped halfway — and if one step
+fails the script keeps going and lists the failures at the end (exit code 1). It asks you to type the resource
+group name first. **This is what stops the bill.**
+
+```bash
+scripts/99-destroy.sh                 # interactive
+scripts/99-destroy.sh --yes           # no questions (for CI)
+scripts/99-destroy.sh --keep-cluster  # empty the cluster (steps 1-7 + node pool) but keep AKS + the resource group
+scripts/99-destroy.sh --fast          # skip straight to deleting the resource group (Azure removes the rest)
+scripts/99-destroy.sh --wait          # wait until Azure has really finished
+```
+
+Verify afterwards: `az group show -n freshmart-rg` should answer `ResourceGroupNotFound`.
 
 ## Best practices baked in (and where to look)
 

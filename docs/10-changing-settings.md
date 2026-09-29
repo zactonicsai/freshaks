@@ -35,7 +35,7 @@ tools/set-config.sh LETSENCRYPT_EMAIL me@example.com
 
 | You changed | Re-run |
 |-------------|--------|
-| region, VM sizes, node counts | `01`, `02` (node pools can't change size in place — add a new pool) |
+| region, VM sizes, node counts | `01`, `02` (node pools can't change size in place — `99-destroy.sh --keep-cluster` then `02`, or add a new pool) |
 | `ENABLE_TLS` / `LETSENCRYPT_EMAIL` | `02` (cert-manager), `05` (Keycloak hostname → https), `08` (ingresses), then `tools/reimport-realm.sh` (redirect URIs) |
 | Keycloak admin password | `05` only applies on first start — change it in the admin console, then update the config |
 | `DEMO_USER_PASSWORD`, client secrets | `tools/reimport-realm.sh` **and** `08` (the apps get the secret from a Secret) |

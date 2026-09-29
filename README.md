@@ -31,7 +31,7 @@ scripts/07-build-images.sh        # build Java, Python and Go images in the clou
 scripts/08-deploy-apps.sh         # deploy the store and the deli
 scripts/09-run-tests.sh           # send in the inspectors
 scripts/10-status.sh              # URLs, pods, users
-scripts/99-destroy.sh             # delete everything (stops the bill)
+scripts/99-destroy.sh             # delete everything, in reverse order (stops the bill); --keep-cluster / --fast / --yes
 ```
 
 Before spending money you can run every offline check on your laptop: `tools/local-check.sh`.
@@ -49,7 +49,7 @@ Before spending money you can run every offline check on your laptop: `tools/loc
 | `tests/go-client/` | Go inspector (Bearer tokens, 28 checks) + its own unit tests |
 | `tests/curl-client/` | the same checks with only curl + sed |
 | `tests/playwright/` | robot browser: logs in as each person and tries every door |
-| `tools/` | `set-config.sh` (sed), `kcadm.sh`, `reimport-realm.sh`, `add-service.sh`, `add-role.sh`, `render-templates.sh`, `local-check.sh` |
+| `tools/` | `set-config.sh` (sed), `kcadm.sh`, `shell.sh` (exec into pods), `forward.sh` (pod ports on your desktop), `reimport-realm.sh`, `add-service.sh`, `add-role.sh`, `render-templates.sh`, `local-check.sh` |
 | `docs/` | the friendly explanations and tutorials |
 
 ## Demo people
@@ -71,4 +71,3 @@ Azure CLI 2.60+, kubectl, Helm 3.12+, jq, envsubst (package `gettext`), bash 4+.
 Optional for offline checks: Python 3.10+, Go 1.22+, Node 18+, shellcheck, Maven.
 
 MIT licensed — copy, break, learn.
-# freshaks

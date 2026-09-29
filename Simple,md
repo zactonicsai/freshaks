@@ -1,0 +1,100 @@
+Simple Mac-side command list: resource group → AKS → Helm Keycloak in `start-dev` → `kubectl port-forward` to `localhost`.
+
+Swap names/region as needed. Use a small cluster; this is for desktop testing only.
+
+```bash
+# --- 0. Login / context ---
+az login
+az account set --subscription "<SUBSCRIPTION_ID>"
+
+# Optional: install kubectl + helm if missing
+az aks install-cli
+brew install helm
+
+# --- 1. Variables ---
+export RG="rg-aks-keycloak-dev"
+export LOC="eastus"
+export AKS="aks-keycloak-dev"
+export NS="keycloak"
+
+# --- 2. Resource group ---
+az group create --name $RG --location $LOC
+
+# --- 3. AKS (1 node, cheap, SSH keys generated) ---
+az aks create \
+  --resource-group $RG \
+  --name $AKS \
+  --node-count 1 \
+  --node-vm-size Standard_B2s \
+  --generate-ssh-keys \
+  --enable-managed-identity
+
+# Wait until Succeeded
+az aks show -g $RG -n $AKS --query provisioningState -o tsv
+
+# --- 4. kubeconfig on the Mac ---
+az aks get-credentials --resource-group $RG --name $AKS --overwrite-existing
+kubectl get nodes
+
+# --- 5. Namespace ---
+kubectl create namespace $NS
+
+# --- 6. Helm repo (codecentric keycloakx = official Quay image) ---
+helm repo add codecentric https://codecentric.github.io/helm-charts
+helm repo update
+
+# --- 7. Install Keycloak in start-dev ---
+# H2 in-pod DB, HTTP on 8080, hostname checks off so localhost works
+helm upgrade --install keycloak codecentric/keycloakx \
+  --namespace $NS \
+  --set command="{start-dev}" \
+  --set extraEnv[0].name=KC_BOOTSTRAP_ADMIN_USERNAME \
+  --set extraEnv[0].value=admin \
+  --set extraEnv[1].name=KC_BOOTSTRAP_ADMIN_PASSWORD \
+  --set extraEnv[1].value=admin \
+  --set extraEnv[2].name=KC_HTTP_ENABLED \
+  --set extraEnv[2].value="true" \
+  --set extraEnv[3].name=KC_HOSTNAME_STRICT \
+  --set extraEnv[3].value="false" \
+  --set extraEnv[4].name=KC_HOSTNAME \
+  --set extraEnv[4].value=localhost \
+  --set extraEnv[5].name=KC_HOSTNAME_PORT \
+  --set extraEnv[5].value="8080" \
+  --set service.type=ClusterIP \
+  --set http.httpEnabled=true
+
+# Wait for the pod
+kubectl -n $NS rollout status statefulset/keycloak --timeout=180s
+kubectl -n $NS get pods,svc
+
+# --- 8. Localhost from the Mac ---
+# Leave this terminal open
+kubectl -n $NS port-forward svc/keycloak-keycloakx-http 8080:8080
+```
+
+Open:
+
+- Admin console: http://localhost:8080  
+- Login: `admin` / `admin`
+
+If the service name differs, list it and forward that:
+
+```bash
+kubectl -n $NS get svc
+kubectl -n $NS port-forward svc/<SERVICE_NAME> 8080:8080
+```
+
+### Cleanup
+
+```bash
+helm -n $NS uninstall keycloak
+az aks delete -g $RG -n $AKS --yes --no-wait
+az group delete -n $RG --yes --no-wait
+```
+
+Notes:
+
+- `start-dev` is for local/dev only (HTTP, H2, no HA). Do not use this as a production SSO.
+- Port-forward is the right way to hit Keycloak from a Mac without a public LoadBalancer or Ingress.
+- If the admin UI redirects oddly, keep `KC_HOSTNAME=localhost` and `KC_HOSTNAME_PORT=8080` as above, and use exactly `http://localhost:8080`.
+- AKS create takes several minutes; the Helm install is usually ready in 1–2 minutes after the cluster is up.

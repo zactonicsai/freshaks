@@ -26,10 +26,10 @@ nodes:
       - containerPort: 30090
         hostPort: 8082
         protocol: TCP
-      - containerPort: 30790
-        hostPort: 7990
+      - containerPort: 30300
+        hostPort: 3000
         protocol: TCP
-      - containerPort: 30799
-        hostPort: 7999
+      - containerPort: 30222
+        hostPort: 2222
         protocol: TCP
   - role: worker

@@ -1,10 +1,10 @@
-# GitOps Lab: Kind + Helm + Argo CD + Bitbucket + Jenkins
+# GitOps Lab: Kind + Helm + Argo CD + Gitea + Jenkins
 
-Local GitOps stack on Docker:
+Local GitOps stack on Docker. Git hosting is **Gitea Community** (MIT, free) instead of Bitbucket.
 
 ```
 Developer push
-    → Bitbucket (Git, running as a pod)
+    → Gitea (Git, running as a pod)
         → Jenkins webhook (CI)
             → build image
             → push to local registry
@@ -21,8 +21,8 @@ Jenkins never deploys to Kubernetes. It only builds and writes the new image tag
 | Path | Purpose |
 |---|---|
 | `kind/` | Kind cluster config + extra NodePorts |
-| `helm/` | Argo CD and Jenkins Helm values |
-| `k8s/` | Bitbucket Deployment, registry ConfigMap |
+| `helm/` | Argo CD, Jenkins, optional Gitea Helm values |
+| `k8s/` | Gitea Deployment (default), registry ConfigMap |
 | `sample-app/` | Tiny Flask app + Dockerfile + Jenkinsfile |
 | `gitops/` | Manifests Argo CD syncs |
 | `scripts/` | Install, bootstrap, teardown |
@@ -31,9 +31,10 @@ Jenkins never deploys to Kubernetes. It only builds and writes the new image tag
 ## Requirements
 
 - Docker Engine running
-- 16 GB RAM recommended (8 GB will struggle)
+- 8–16 GB RAM (Gitea + SQLite is much lighter than Bitbucket)
 - Host tools: `kind`, `kubectl`, `helm`, `argocd` CLI (optional)
-- Atlassian Bitbucket Server/Data Center image is commercial. Fine for a personal lab; not a production license.
+
+Gitea is MIT-licensed community software. No Atlassian license.
 
 ## Quick start
 
@@ -43,11 +44,15 @@ chmod +x scripts/*.sh
 ./scripts/00-prereq-check.sh
 ./scripts/01-create-cluster.sh
 ./scripts/02-install-argocd.sh
-./scripts/03-install-bitbucket.sh
-# Finish Bitbucket setup wizard at http://localhost:7990
+./scripts/03-install-gitea.sh
+./scripts/seed-image.sh
+./scripts/05-bootstrap-repos.sh
+./scripts/06-register-argocd-app.sh
 ./scripts/04-install-jenkins.sh
-# Then follow docs/SETUP.md to create repos, tokens, and the first pipeline run
 ```
+
+Default Gitea login: `gitea_admin` / `LabPass123!`  
+UI: http://localhost:3000
 
 Teardown:
 
@@ -59,7 +64,8 @@ Teardown:
 
 | Host | Service |
 |---|---|
-| `localhost:7990` | Bitbucket HTTP |
+| `localhost:3000` | Gitea HTTP |
+| `localhost:2222` | Gitea SSH |
 | `localhost:8081` | Argo CD UI |
 | `localhost:8082` | Jenkins UI |
 | `localhost:5001` | Local container registry |
@@ -73,3 +79,10 @@ Teardown:
 | Kubernetes manifests / Argo CD | `localhost:5001/demo-app:<tag>` |
 
 Kind remaps `localhost:5001` inside nodes to the registry container.
+
+## Gitea clone URLs
+
+| From | URL |
+|---|---|
+| Host | `http://localhost:3000/gitea_admin/demo-app.git` |
+| In-cluster (Jenkins, Argo CD) | `http://gitea.gitea.svc.cluster.local:3000/gitea_admin/demo-app.git` |

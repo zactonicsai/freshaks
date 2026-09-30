@@ -13,9 +13,8 @@ pipeline {
     // What Kubernetes / Argo CD must pull (Kind remaps this on the node).
     PULL_REGISTRY = 'localhost:5001'
     IMAGE_TAG     = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'local'}"
-    // Adjust project key if Bitbucket used something other than DEMO.
-    BB_APP_REPO   = 'http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-app.git'
-    BB_GITOPS_REPO = 'http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-gitops.git'
+    GITEA_APP_REPO    = 'http://gitea.gitea.svc.cluster.local:3000/gitea_admin/demo-app.git'
+    GITEA_GITOPS_REPO = 'http://gitea.gitea.svc.cluster.local:3000/gitea_admin/demo-gitops.git'
     GITOPS_DEPLOY  = 'demo-app/deployment.yaml'
   }
 
@@ -45,7 +44,7 @@ pipeline {
       steps {
         container('git') {
           withCredentials([usernamePassword(
-            credentialsId: 'bitbucket-http',
+            credentialsId: 'gitea-http',
             usernameVariable: 'GIT_USER',
             passwordVariable: 'GIT_PASS'
           )]) {
@@ -53,10 +52,10 @@ pipeline {
               set -eu
               apk add --no-cache sed >/dev/null 2>&1 || true
               rm -rf gitops-src
-              AUTH_URL=$(echo "$BB_GITOPS_REPO" | sed "s#http://#http://${GIT_USER}:${GIT_PASS}@#")
+              AUTH_URL=$(echo "$GITEA_GITOPS_REPO" | sed "s#http://#http://${GIT_USER}:${GIT_PASS}@#")
               git clone "$AUTH_URL" gitops-src
               cd gitops-src
-              git checkout master || git checkout main
+              git checkout main || git checkout master
               test -f "$GITOPS_DEPLOY"
 
               # Replace the image line in the Deployment.

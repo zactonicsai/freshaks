@@ -1,0 +1,59 @@
+# Optional: official community Helm chart instead of k8s/gitea.yaml
+#   helm repo add gitea-charts https://dl.gitea.com/charts/
+#   helm upgrade --install gitea gitea-charts/gitea -n gitea --create-namespace -f helm/gitea-values.yaml
+#
+# Username cannot be "admin" on this chart.
+
+gitea:
+  admin:
+    username: gitea_admin
+    password: "LabPass123!"
+    email: gitea@lab.local
+    passwordMode: keepUpdated
+  config:
+    server:
+      DOMAIN: localhost
+      HTTP_PORT: 3000
+      ROOT_URL: http://localhost:3000/
+      SSH_DOMAIN: localhost
+      SSH_PORT: 30222
+    database:
+      DB_TYPE: sqlite3
+    service:
+      DISABLE_REGISTRATION: true
+    repository:
+      DEFAULT_BRANCH: main
+    webhook:
+      ALLOWED_HOST_LIST: "*"
+
+service:
+  http:
+    type: NodePort
+    port: 3000
+    nodePort: 30300
+  ssh:
+    type: NodePort
+    nodePort: 30222
+
+postgresql:
+  enabled: false
+postgresql-ha:
+  enabled: false
+redis-cluster:
+  enabled: false
+valkey-cluster:
+  enabled: false
+memcached:
+  enabled: false
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

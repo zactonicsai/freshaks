@@ -1,31 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GITEA_USER="${GITEA_USER:-gitea_admin}"
+GITEA_PASS="${GITEA_PASS:-LabPass123!}"
+REPO_URL="http://gitea.gitea.svc.cluster.local:3000/${GITEA_USER}/demo-gitops.git"
 
-BB_PROJECT="${BB_PROJECT:-DEMO}"
-REPO_URL="http://bitbucket.scm.svc.cluster.local:7990/scm/${BB_PROJECT}/demo-gitops.git"
-
-if [[ -n "${BB_USER:-}" && -n "${BB_PASS:-}" ]] && command -v argocd >/dev/null; then
+if command -v argocd >/dev/null; then
   echo "== argocd repo add =="
   argocd repo add "${REPO_URL}" \
-    --username "${BB_USER}" \
-    --password "${BB_PASS}" \
+    --username "${GITEA_USER}" \
+    --password "${GITEA_PASS}" \
     --insecure-skip-server-verification \
     --upsert || true
 else
-  echo "Skipping CLI repo add."
-  echo "Either export BB_USER and BB_PASS and install argocd CLI,"
-  echo "or apply gitops/argocd/repo-secret.yaml.example after filling the token."
+  echo "argocd CLI not found; applying repository Secret instead."
+  kubectl -n argocd create secret generic gitea-demo-gitops \
+    --from-literal=type=git \
+    --from-literal=url="${REPO_URL}" \
+    --from-literal=username="${GITEA_USER}" \
+    --from-literal=password="${GITEA_PASS}" \
+    --from-literal=insecure=true \
+    --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n argocd label secret gitea-demo-gitops \
+    argocd.argoproj.io/secret-type=repository --overwrite
 fi
 
-TMP="$(mktemp)"
-sed "s#/scm/DEMO/demo-gitops.git#/scm/${BB_PROJECT}/demo-gitops.git#" \
-  "${ROOT}/gitops/argocd/application.yaml" > "${TMP}"
-kubectl apply -f "${TMP}"
-rm -f "${TMP}"
+kubectl apply -f "${ROOT}/gitops/argocd/application.yaml"
 
 echo
 echo "Application demo-app created."
 echo "  kubectl -n argocd get application"
-echo "  argocd app get demo-app"
-echo "First sync will stay ImagePullBackOff until Jenkins (or seed-image.sh) publishes localhost:5001/demo-app:init"
+echo "Seed image first if the pod is ImagePullBackOff: ./scripts/seed-image.sh"

@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-gitops.git
+    repoURL: http://gitea.gitea.svc.cluster.local:3000/gitea_admin/demo-gitops.git
     targetRevision: HEAD
     path: demo-app
   destination:

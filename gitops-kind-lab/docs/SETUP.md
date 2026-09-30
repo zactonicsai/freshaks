@@ -1,4 +1,4 @@
-# Step-by-step setup
+# Step-by-step setup (Gitea Community)
 
 ## 1. Prerequisites
 
@@ -32,12 +32,6 @@ Run `./scripts/00-prereq-check.sh`.
 kubectl get nodes
 ```
 
-This creates:
-
-- Docker registry `kind-registry` published on `127.0.0.1:5001`
-- Kind cluster named `gitops`
-- containerd rewrite so pods can pull `localhost:5001/...`
-
 ## 3. Install Argo CD with Helm
 
 ```bash
@@ -46,118 +40,74 @@ This creates:
 
 UI: http://localhost:8081
 
-Initial admin password:
-
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
-Login user: `admin`.
-
-If the CLI is installed:
+User: `admin`.
 
 ```bash
 argocd login localhost:8081 --username admin --password '<password>' --insecure
 ```
 
-## 4. Install Bitbucket as a pod
+## 4. Install Gitea (community, free)
+
+Default path is a single pod + SQLite (`k8s/gitea.yaml`):
 
 ```bash
-./scripts/03-install-bitbucket.sh
+./scripts/03-install-gitea.sh
 ```
 
-Wait until the pod is Ready (first pull + JVM start can take several minutes):
+UI: http://localhost:3000
+User: `gitea_admin`
+Password: `LabPass123!`
+
+The script creates the admin user and two repos:
+
+- `gitea_admin/demo-app`
+- `gitea_admin/demo-gitops`
+
+Optional: official Gitea Helm chart instead of the raw Deployment:
 
 ```bash
-kubectl -n scm get pods -w
+helm repo add gitea-charts https://dl.gitea.com/charts/
+helm upgrade --install gitea gitea-charts/gitea \
+  -n gitea --create-namespace \
+  -f helm/gitea-values.yaml
 ```
 
-Open http://localhost:7990
+If you use the Helm chart, the HTTP service name may be `gitea-http` instead of `gitea`. Update clone URLs in the Jenkinsfile and Argo CD Application.
 
-Complete the setup wizard:
-
-1. Choose **Standalone** (not Data Center cluster).
-2. Internal H2 database is acceptable for this lab.
-3. Create admin user (example: `admin` / `admin`).
-4. Create a project, e.g. `DEMO`.
-5. Create two repositories:
-   - `demo-app` (application source)
-   - `demo-gitops` (manifests Argo CD watches)
-6. Create an **HTTP access token** (personal or repo) with read + write on both repos.
-
-Clone URLs from inside the cluster look like:
-
-```
-http://bitbucket.scm.svc.cluster.local:7990/scm/demo/demo-app.git
-http://bitbucket.scm.scm.svc.cluster.local:7990/scm/demo/demo-gitops.git
-```
-
-From the host:
-
-```
-http://localhost:7990/scm/demo/demo-app.git
-```
-
-Exact path depends on the project key Bitbucket assigns (often `DEMO`).
-
-## 5. Push starter content into Bitbucket
-
-From the host, after the wizard:
+## 5. Seed the first image + push starter Git content
 
 ```bash
-export BB_USER=admin
-export BB_PASS='your-token-or-password'
-export BB_PROJECT=DEMO   # project key
-
-git clone http://${BB_USER}:${BB_PASS}@localhost:7990/scm/${BB_PROJECT}/demo-app.git /tmp/demo-app
-cp -a sample-app/. /tmp/demo-app/
-cd /tmp/demo-app
-git add .
-git commit -m "Initial app + Jenkinsfile"
-git push origin master   # or main — match Bitbucket default
-
-git clone http://${BB_USER}:${BB_PASS}@localhost:7990/scm/${BB_PROJECT}/demo-gitops.git /tmp/demo-gitops
-cp -a gitops/. /tmp/demo-gitops/
-cd /tmp/demo-gitops
-# Edit demo-app/deployment.yaml if your project key differs
-git add .
-git commit -m "Initial GitOps manifests"
-git push origin master
+./scripts/seed-image.sh
+./scripts/05-bootstrap-repos.sh
 ```
 
-Or run `./scripts/05-bootstrap-repos.sh` after exporting `BB_USER`, `BB_PASS`, and `BB_PROJECT`.
-
-## 6. Point Argo CD at Bitbucket
-
-HTTP Bitbucket in this lab has no trusted TLS. Mark the repo insecure.
-
-UI: Settings → Repositories → Connect Repo
-
-- URL: `http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-gitops.git`
-- Username + password or HTTP access token
-- Skip server verification
-
-CLI:
+Override credentials if you changed them:
 
 ```bash
-argocd repo add http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-gitops.git \
-  --username admin \
-  --password "$BB_PASS" \
-  --insecure-skip-server-verification
+GITEA_USER=gitea_admin GITEA_PASS='LabPass123!' ./scripts/05-bootstrap-repos.sh
 ```
 
-Create the Application:
+## 6. Point Argo CD at Gitea
 
 ```bash
 ./scripts/06-register-argocd-app.sh
-# or
-kubectl apply -f gitops/argocd/application.yaml
 ```
 
-Edit `gitops/argocd/application.yaml` so `repoURL` matches your project key before apply.
+Or CLI:
 
-Argo CD should sync `demo-app` into namespace `apps`.
+```bash
+argocd repo add http://gitea.gitea.svc.cluster.local:3000/gitea_admin/demo-gitops.git \
+  --username gitea_admin \
+  --password 'LabPass123!' \
+  --insecure-skip-server-verification
+```
+
+Argo CD syncs `demo-app` into namespace `apps`.
 
 ## 7. Install Jenkins with Helm
 
@@ -167,84 +117,69 @@ Argo CD should sync `demo-app` into namespace `apps`.
 
 UI: http://localhost:8082
 
-Admin password:
-
 ```bash
 kubectl -n jenkins get secret jenkins \
   -o jsonpath='{.data.jenkins-admin-password}' | base64 -d; echo
 ```
 
-User: `admin`.
-
 ### Jenkins credentials
-
-Create:
 
 | ID | Type | Use |
 |---|---|---|
-| `bitbucket-http` | Username + password | Clone/push Bitbucket |
-| `registry-none` | optional | Local registry has no auth |
+| `gitea-http` | Username + password | `gitea_admin` / `LabPass123!` |
 
-### Jenkins Kubernetes cloud
-
-The official chart already installs the Kubernetes plugin and a service account. Confirm **Manage Jenkins → Clouds → kubernetes** exists.
-
-Agents use the pod template in `helm/jenkins-values.yaml` (`kaniko` + `git` containers).
-
-### Multibranch or Pipeline job
+### Pipeline job
 
 1. New Item → Pipeline
 2. Definition: Pipeline script from SCM
-3. SCM: Git
-4. Repo: `http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-app.git`
-5. Credentials: `bitbucket-http`
+3. SCM Git URL: `http://gitea.gitea.svc.cluster.local:3000/gitea_admin/demo-app.git`
+4. Credentials: `gitea-http`
+5. Branch: `main`
 6. Script path: `Jenkinsfile`
 
-### Bitbucket webhook (optional)
+### Optional webhook
 
-Repository settings → Webhooks → `http://jenkins.jenkins.svc.cluster.local:8080/bitbucket-hook/`
+Gitea repo `demo-app` → Settings → Webhooks → Add webhook
 
-Install the Bitbucket plugin if you use that trigger. Poll SCM also works for a lab.
+- URL: `http://jenkins.jenkins.svc.cluster.local:8080/gitea-webhook/post`
+- Triggers: Push
+
+Install the Gitea plugin if you use that trigger. Poll SCM is enough for a lab.
 
 ## 8. What the pipeline does
 
-`sample-app/Jenkinsfile`:
-
 1. Checkout `demo-app`
-2. Kaniko builds and pushes `kind-registry:5000/demo-app:<BUILD_NUMBER>-<GIT_COMMIT>`
+2. Kaniko builds and pushes `kind-registry:5000/demo-app:<BUILD>-<sha>`
 3. Clone `demo-gitops`
-4. `sed` the image tag in `demo-app/deployment.yaml`
-5. Commit and push to Bitbucket
-6. Argo CD sees the commit and rolls out the new image
+4. Update `demo-app/deployment.yaml` image to `localhost:5001/demo-app:<tag>`
+5. Commit and push to Gitea
+6. Argo CD rolls out the new image
 
 Do **not** `kubectl apply` from Jenkins.
 
-## 9. Verify end-to-end
+## 9. Verify
 
 ```bash
-# after a green Jenkins build
 kubectl -n apps get deploy,pods,svc
 kubectl -n apps describe deploy demo-app | grep Image
 argocd app get demo-app
 ```
 
-Change `sample-app/app.py`, push to `demo-app`, run the job, watch Argo CD sync.
+Change `sample-app/app.py`, push to `demo-app`, run Jenkins, watch Argo CD sync.
 
 ## 10. Common failures
 
 | Symptom | Fix |
 |---|---|
-| Image pull `localhost:5001` fails | Re-run registry hosts.toml step in `01-create-cluster.sh`; confirm `docker network connect kind kind-registry` |
-| Kaniko cannot reach registry | Push target must be `kind-registry:5000`, not `localhost:5001` |
-| Argo CD cannot clone Bitbucket | Use in-cluster DNS + `--insecure-skip-server-verification` |
-| Bitbucket pending forever | Give the pod 2–4 GB; check `kubectl -n scm logs sts/bitbucket` or the deployment logs |
-| Jenkins agent pending | Chart RBAC / default SA; `kubectl -n jenkins get sa,rolebinding` |
-| Argo CD OutOfSync after push | Confirm you pushed the **gitops** repo, not only the app repo |
+| Image pull `localhost:5001` fails | Re-run registry step in `01-create-cluster.sh`; `docker network connect kind kind-registry` |
+| Kaniko cannot reach registry | Destination must be `kind-registry:5000` |
+| Argo CD cannot clone | In-cluster URL `gitea.gitea.svc.cluster.local:3000` + insecure HTTP |
+| Gitea `/api/healthz` not ready | Wait; first pull of `gitea/gitea` can take a few minutes |
+| 401 on git push | Use `gitea_admin` / `LabPass123!` and confirm the user exists (`03` script) |
+| Helm Gitea service name differs | Chart uses `gitea-http`; update Jenkinsfile + Application `repoURL` |
 
 ## 11. Teardown
 
 ```bash
 ./scripts/teardown.sh
 ```
-
-Removes the Kind cluster and the `kind-registry` container. PVCs die with the cluster.

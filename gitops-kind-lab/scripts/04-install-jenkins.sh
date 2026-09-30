@@ -20,5 +20,6 @@ echo -n "Password: "
 kubectl -n jenkins get secret jenkins \
   -o jsonpath='{.data.jenkins-admin-password}' 2>/dev/null | base64 -d || echo "(secret not ready yet — retry in a minute)"
 echo
-echo "Add credential ID bitbucket-http (Username with password)."
-echo "Create a Pipeline job pointing at demo-app / Jenkinsfile."
+echo "Add credential ID gitea-http (Username with password): gitea_admin / LabPass123!"
+echo "Pipeline SCM: http://gitea.gitea.svc.cluster.local:3000/gitea_admin/demo-app.git"
+echo "Branch main, script path Jenkinsfile."

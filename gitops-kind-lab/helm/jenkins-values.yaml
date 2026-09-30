@@ -15,7 +15,7 @@ controller:
     - credentials-binding:latest
     - plain-credentials:latest
     - job-dsl:latest
-    - bitbucket:latest
+    - gitea:latest
   resources:
     requests:
       cpu: 250m

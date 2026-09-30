@@ -1,0 +1,142 @@
+pipeline {
+  agent {
+    kubernetes {
+      defaultContainer 'gradle'
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins
+  containers:
+    - name: gradle
+      image: gradle:8-jdk21
+      command: ["sh", "-c"]
+      args: ["sleep 9999999"]
+      tty: true
+    - name: git
+      image: alpine/git:2.49.1
+      command: ["sh", "-c"]
+      args: ["sleep 9999999"]
+      tty: true
+      env:
+        - name: GITEA_USER
+          valueFrom:
+            secretKeyRef:
+              name: gitea-credentials
+              key: username
+        - name: GITEA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: gitea-credentials
+              key: password
+    - name: terraform
+      image: hashicorp/terraform:1.16.2
+      command: ["sh", "-c"]
+      args: ["sleep 9999999"]
+      tty: true
+'''
+    }
+  }
+
+  options {
+    skipDefaultCheckout(true)
+    timestamps()
+  }
+
+  environment {
+    REGISTRY_PUSH = 'kind-registry:5000'
+    REGISTRY_DEPLOY = 'localhost:5001'
+    GITOPS_URL = 'http://gitea.gitea.svc.cluster.local:3000/gitadmin/gitops-repo.git'
+  }
+
+  stages {
+    stage('Checkout app source') {
+      steps {
+        container('git') {
+          checkout scm
+        }
+      }
+    }
+
+    stage('Gradle test') {
+      steps {
+        container('gradle') {
+          sh 'gradle --no-daemon clean test'
+        }
+      }
+    }
+
+    stage('Terraform read-only Kubernetes check') {
+      steps {
+        container('terraform') {
+          dir('terraform/ci') {
+            sh 'terraform init -input=false -no-color'
+            sh 'terraform plan -input=false -no-color'
+          }
+        }
+      }
+    }
+
+    stage('Choose immutable image tag') {
+      steps {
+        container('git') {
+          script {
+            env.SHORT_SHA = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
+            env.IMAGE_TAG = "build-${env.BUILD_NUMBER}-${env.SHORT_SHA}"
+          }
+          echo "Image tag: ${env.IMAGE_TAG}"
+        }
+      }
+    }
+
+    stage('Build and push image with Jib') {
+      steps {
+        container('gradle') {
+          sh '''
+            gradle --no-daemon jib \
+              -Djib.to.image=${REGISTRY_PUSH}/demo-app:${IMAGE_TAG} \
+              -Djib.allowInsecureRegistries=true
+'''
+        }
+      }
+    }
+
+    stage('Update GitOps desired image tag') {
+      steps {
+        container('git') {
+          sh '''
+            set -eu
+            rm -rf gitops-work
+            git clone "$GITOPS_URL" gitops-work
+            cd gitops-work
+
+            sed -i "s/^  newTag: .*/  newTag: ${IMAGE_TAG}/" environments/local/kustomization.yaml
+
+            git config user.name "jenkins"
+            git config user.email "jenkins@local.lab"
+            git add environments/local/kustomization.yaml
+
+            if git diff --cached --quiet; then
+              echo "GitOps tag already matches; nothing to commit."
+              exit 0
+            fi
+
+            git commit -m "deploy: demo-app ${IMAGE_TAG}"
+
+            # Do not echo the password-bearing URL into the Jenkins log.
+            set +x
+            git remote set-url origin "http://${GITEA_USER}:${GITEA_PASSWORD}@gitea.gitea.svc.cluster.local:3000/gitadmin/gitops-repo.git"
+            git push origin HEAD:main
+            set -x
+'''
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo 'Build complete. Jenkins changed Git only. Argo CD will perform deployment reconciliation.'
+    }
+  }
+}

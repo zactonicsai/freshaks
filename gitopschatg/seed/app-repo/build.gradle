@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.google.cloud.tools.jib' version '3.4.5'
+}
+
+group = 'lab.demo'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+application {
+    mainClass = 'lab.demo.Main'
+}
+
+jib {
+    from {
+        image = 'eclipse-temurin:21-jre'
+    }
+    to {
+        image = System.getProperty('jib.to.image', 'localhost:5001/demo-app:dev')
+    }
+    container {
+        mainClass = 'lab.demo.Main'
+        ports = ['8080']
+        creationTime = 'USE_CURRENT_TIMESTAMP'
+    }
+    allowInsecureRegistries = true
+}

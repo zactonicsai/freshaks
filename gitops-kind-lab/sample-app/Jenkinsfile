@@ -1,0 +1,81 @@
+pipeline {
+  agent {
+    kubernetes {
+      inheritFrom 'kaniko'
+      defaultContainer 'kaniko'
+    }
+  }
+
+  environment {
+    APP_NAME      = 'demo-app'
+    // From inside the cluster, push to the registry container name.
+    REGISTRY      = 'kind-registry:5000'
+    // What Kubernetes / Argo CD must pull (Kind remaps this on the node).
+    PULL_REGISTRY = 'localhost:5001'
+    IMAGE_TAG     = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7) ?: 'local'}"
+    // Adjust project key if Bitbucket used something other than DEMO.
+    BB_APP_REPO   = 'http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-app.git'
+    BB_GITOPS_REPO = 'http://bitbucket.scm.svc.cluster.local:7990/scm/DEMO/demo-gitops.git'
+    GITOPS_DEPLOY  = 'demo-app/deployment.yaml'
+  }
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+    stage('Build & push image') {
+      steps {
+        container('kaniko') {
+          sh """
+            /kaniko/executor \
+              --context=dir://\${WORKSPACE} \
+              --dockerfile=Dockerfile \
+              --destination=${REGISTRY}/${APP_NAME}:${IMAGE_TAG} \
+              --insecure \
+              --insecure-pull \
+              --skip-tls-verify
+          """
+        }
+      }
+    }
+
+    stage('Update GitOps image tag') {
+      steps {
+        container('git') {
+          withCredentials([usernamePassword(
+            credentialsId: 'bitbucket-http',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_PASS'
+          )]) {
+            sh '''
+              set -eu
+              apk add --no-cache sed >/dev/null 2>&1 || true
+              rm -rf gitops-src
+              AUTH_URL=$(echo "$BB_GITOPS_REPO" | sed "s#http://#http://${GIT_USER}:${GIT_PASS}@#")
+              git clone "$AUTH_URL" gitops-src
+              cd gitops-src
+              git checkout master || git checkout main
+              test -f "$GITOPS_DEPLOY"
+
+              # Replace the image line in the Deployment.
+              sed -i "s|image: .*demo-app:.*|image: ${PULL_REGISTRY}/${APP_NAME}:${IMAGE_TAG}|" "$GITOPS_DEPLOY"
+              cat "$GITOPS_DEPLOY"
+
+              git config user.email "jenkins@lab.local"
+              git config user.name "Jenkins CI"
+              git add "$GITOPS_DEPLOY"
+              if git diff --cached --quiet; then
+                echo "No image change to commit"
+              else
+                git commit -m "ci: bump ${APP_NAME} to ${IMAGE_TAG}"
+                git push origin HEAD
+              fi
+            '''
+          }
+        }
+      }
+    }
+  }
+}

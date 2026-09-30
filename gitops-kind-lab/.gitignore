@@ -1,0 +1,4 @@
+.gitops-work/
+*.log
+.DS_Store
+gitops/argocd/repo-secret.yaml

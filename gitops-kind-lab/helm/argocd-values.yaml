@@ -1,0 +1,28 @@
+# Lab values for argo/argo-cd
+# Server is exposed as NodePort 30080 → host 8081
+
+configs:
+  params:
+    server.insecure: true
+
+server:
+  extraArgs:
+    - --insecure
+  service:
+    type: NodePort
+    nodePortHttp: 30080
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+redis-ha:
+  enabled: false
+
+controller:
+  replicas: 1
+
+repoServer:
+  replicas: 1

@@ -1,0 +1,100 @@
+# Lightweight Bitbucket Server for a Kind lab.
+# Not the full Atlassian Data Center Helm chart (that needs NFS + Postgres).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bitbucket-home
+  namespace: scm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bitbucket
+  namespace: scm
+  labels:
+    app: bitbucket
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bitbucket
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: bitbucket
+    spec:
+      containers:
+        - name: bitbucket
+          image: atlassian/bitbucket:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 7990
+            - name: ssh
+              containerPort: 7999
+          env:
+            - name: SEARCH_ENABLED
+              value: "false"
+            - name: ELASTICSEARCH_ENABLED
+              value: "false"
+            - name: JVM_MINIMUM_MEMORY
+              value: "512m"
+            - name: JVM_MAXIMUM_MEMORY
+              value: "2048m"
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+          volumeMounts:
+            - name: home
+              mountPath: /var/atlassian/application-data/bitbucket
+      volumes:
+        - name: home
+          persistentVolumeClaim:
+            claimName: bitbucket-home
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitbucket
+  namespace: scm
+spec:
+  type: NodePort
+  selector:
+    app: bitbucket
+  ports:
+    - name: http
+      port: 7990
+      targetPort: http
+      nodePort: 30790
+    - name: ssh
+      port: 7999
+      targetPort: ssh
+      nodePort: 30799

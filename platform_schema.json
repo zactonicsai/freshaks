@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "k8s-platform deployment spec",
+  "description": "One document per cluster: config/global.yaml deep-merged with config/clusters/<name>.yaml. It is the single input of every tool and generator: shell scripts, Terraform, Helm and Argo CD. Unknown keys are rejected, except inside free-form Helm values.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "platform", "gitops", "cluster"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this contract. A generator must refuse a version it does not know.",
+      "type": "integer",
+      "const": 1
+    },
+    "platform": {
+      "description": "Identity of the platform and its conformance gate.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "minKubernetesVersion"],
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "minKubernetesVersion": {
+          "description": "Oldest Kubernetes minor version a cluster may run. Generates the version check in the deploy script. Quote it.",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "examples": ["1.35"]
+        }
+      }
+    },
+    "gitops": {
+      "description": "The Git repository Argo CD follows and the Argo CD release to install. Generates the bootstrap: the Argo CD Helm release and the root Application.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repoURL", "revision", "argocd"],
+      "properties": {
+        "repoURL": {
+          "description": "Repository that holds this configuration and the charts.",
+          "type": "string",
+          "minLength": 1,
+          "examples": ["https://github.com/your-org/k8s-platform.git"]
+        },
+        "revision": {
+          "description": "Branch, tag or commit to deploy from. A cluster file can pin a tag.",
+          "type": "string",
+          "minLength": 1,
+          "default": "main"
+        },
+        "argocd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["chartVersion", "appsChartVersion"],
+          "properties": {
+            "chartVersion": { "$ref": "#/$defs/version" },
+            "appsChartVersion": { "$ref": "#/$defs/version" },
+            "values": {
+              "description": "Helm values for the Argo CD chart, passed through unchanged.",
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "cluster": { "$ref": "#/$defs/cluster" },
+    "hostedAddonCatalog": {
+      "description": "Per cluster type, the add-ons the provider can supply. Key = add-on name, value = the provider's add-on name, or \"builtin\" when it ships with every cluster. For a listed add-on no Helm release is generated; a named entry is enabled through the cluster driver instead.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/clusterType" },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "$ref": "#/$defs/name" },
+        "additionalProperties": { "type": "string", "minLength": 1 }
+      }
+    },
+    "addons": {
+      "description": "Platform services, one pinned third-party Helm chart each. Key = release name. Generates one Helm release per enabled add-on that the provider does not host.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/name" },
+      "additionalProperties": { "$ref": "#/$defs/addon" }
+    },
+    "apps": {
+      "description": "Workloads. Key = release name. An entry with image generates Kubernetes manifests through the generic chart; an entry with chart generates a Helm release of that chart.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/name" },
+      "additionalProperties": { "$ref": "#/$defs/app" }
+    },
+    "state": {
+      "description": "Terraform state backend of this cluster. Omit it to keep state on local disk. Generates backend.tf.json for the cluster stack and the bootstrap stack.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend"],
+      "properties": {
+        "backend": {
+          "description": "Any Terraform backend type.",
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$",
+          "examples": ["s3", "azurerm", "gcs", "local"]
+        },
+        "config": {
+          "description": "Settings of that backend, passed through unchanged. The text {stack} in a value becomes cluster or bootstrap.",
+          "type": "object"
+        }
+      }
+    },
+    "jenkins": {
+      "description": "Pipeline settings of this cluster.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "credentialsId": {
+          "description": "Id of the Jenkins Secret file credential that holds KEY=VALUE lines for the provider. Never the secret itself.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "name": {
+      "description": "A Kubernetes-safe name: lowercase letters, digits and dashes.",
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "maxLength": 53
+    },
+    "version": {
+      "description": "A pinned version. Always a string: quote values such as \"1.30\", which YAML would otherwise read as the number 1.3.",
+      "type": "string",
+      "minLength": 1
+    },
+    "stringMap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "clusterType": {
+      "description": "The cluster driver: a folder name in terraform/clusters/. To support another provider, add its name here, add its required fields to cluster.allOf, and add the driver folder.",
+      "enum": ["kind", "eks", "aks", "iks", "vks", "existing"]
+    },
+    "cluster": {
+      "description": "The target cluster. type selects the driver and with it the generated create, kubeconfig and destroy steps. Provider-specific fields are required only for the type that uses them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name", "kubernetesVersion"],
+      "properties": {
+        "type": { "$ref": "#/$defs/clusterType" },
+        "name": {
+          "description": "Cluster name. Must equal the cluster file name.",
+          "type": "string",
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$"
+        },
+        "kubernetesVersion": {
+          "description": "Kubernetes version to create. A string: quote it. vks takes a release name from kubectl get kr.",
+          "type": "string",
+          "pattern": "^v?[0-9]+\\.[0-9]+",
+          "examples": ["1.36", "1.37.0", "v1.35.0---vmware.1-fips-vkr.1"]
+        },
+        "hostedAddons": {
+          "description": "Prefer the provider-managed add-ons named in hostedAddonCatalog over Helm charts.",
+          "type": "boolean",
+          "default": true
+        },
+        "protect": {
+          "description": "true: the pipeline asks for approval before applying, and destroy is refused.",
+          "type": "boolean",
+          "default": false
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "count": { "description": "Worker nodes.", "type": "integer", "minimum": 0 },
+            "min": { "description": "Autoscaling floor. Defaults to count.", "type": "integer", "minimum": 0 },
+            "max": { "description": "Autoscaling ceiling. Defaults to count.", "type": "integer", "minimum": 1 },
+            "size": { "description": "The provider's instance type, VM size, flavor or VM class.", "type": "string", "minLength": 1 },
+            "controlPlane": { "description": "Control plane replicas (vks).", "type": "integer", "minimum": 1 }
+          }
+        },
+        "region": { "description": "Cloud region (eks, aks, iks).", "type": "string", "minLength": 1 },
+        "zone": { "description": "Zone inside the region (iks).", "type": "string", "minLength": 1 },
+        "resourceGroup": { "description": "Resource group (iks: existing group; aks: created, defaults to rg-<name>).", "type": "string", "minLength": 1 },
+        "subscriptionId": { "description": "Azure subscription (aks). Defaults to ARM_SUBSCRIPTION_ID.", "type": "string", "minLength": 1 },
+        "runtime": { "description": "Container runtime that hosts the nodes (kind).", "enum": ["docker", "podman"], "default": "docker" },
+        "nodeImage": { "description": "Node image pinned by digest (kind).", "type": "string", "minLength": 1 },
+        "clusterClass": { "description": "Cluster API cluster class (vks).", "type": "string", "minLength": 1 },
+        "storageClass": { "description": "Storage class for node volumes (vks).", "type": "string", "minLength": 1 },
+        "supervisor": {
+          "description": "The vSphere Supervisor that creates the cluster (vks).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kubeconfig": { "type": "string", "minLength": 1 },
+            "context": { "type": "string" },
+            "namespace": { "description": "vSphere Namespace that owns the cluster.", "type": "string", "minLength": 1 }
+          }
+        },
+        "kubeconfig": { "description": "Kubeconfig of a cluster that already exists (existing).", "type": "string", "minLength": 1 },
+        "context": { "description": "Context inside that kubeconfig (existing).", "type": "string" },
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cidr": { "description": "VPC range (eks).", "type": "string" },
+            "publicEndpoint": { "description": "Expose the API endpoint publicly (eks).", "type": "boolean", "default": true },
+            "pods": { "description": "Pod range (vks).", "type": "string" },
+            "services": { "description": "Service range (vks).", "type": "string" }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "eks" } }, "required": ["type"] },
+          "then": {
+            "type": "object",
+            "required": ["region", "nodes"],
+            "properties": { "nodes": { "type": "object", "required": ["count", "size"] } }
+          }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "aks" } }, "required": ["type"] },
+          "then": {
+            "type": "object",
+            "required": ["region", "nodes"],
+            "properties": { "nodes": { "type": "object", "required": ["count", "size"] } }
+          }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "iks" } }, "required": ["type"] },
+          "then": {
+            "type": "object",
+            "required": ["region", "zone", "resourceGroup", "nodes"],
+            "properties": { "nodes": { "type": "object", "required": ["count", "size"] } }
+          }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "vks" } }, "required": ["type"] },
+          "then": {
+            "type": "object",
+            "required": ["clusterClass", "storageClass", "supervisor", "nodes"],
+            "properties": {
+              "supervisor": { "type": "object", "required": ["kubeconfig", "namespace"] },
+              "nodes": { "type": "object", "required": ["count", "size"] }
+            }
+          }
+        }
+      ]
+    },
+    "chart": {
+      "description": "A Helm chart pinned to one version.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "name", "version"],
+      "properties": {
+        "repo": { "description": "Chart repository URL.", "type": "string", "minLength": 1 },
+        "name": { "description": "Chart name in that repository.", "type": "string", "minLength": 1 },
+        "version": { "$ref": "#/$defs/version" }
+      }
+    },
+    "image": {
+      "description": "A container image. The release pipeline writes tag and digest; a digest wins over the tag.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repository": { "description": "Image name without a tag.", "type": "string", "minLength": 1 },
+        "tag": { "description": "Image tag. Always a string: quote values such as \"1.30\".", "type": "string" },
+        "digest": { "description": "sha256 digest, or empty to use the tag.", "type": "string", "pattern": "^(sha256:[a-f0-9]{64})?$" },
+        "pullPolicy": { "enum": ["Always", "IfNotPresent", "Never"], "default": "IfNotPresent" }
+      }
+    },
+    "addon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chart"],
+      "properties": {
+        "enabled": { "description": "false: nothing is generated for this entry.", "type": "boolean", "default": true },
+        "hosted": { "description": "false: always install the chart, even when the provider could host the add-on.", "type": "boolean", "default": true },
+        "namespace": { "$ref": "#/$defs/name" },
+        "project": { "description": "Argo CD project.", "type": "string", "default": "default" },
+        "chart": { "$ref": "#/$defs/chart" },
+        "values": { "description": "Helm values of that chart, passed through unchanged.", "type": "object" }
+      }
+    },
+    "app": {
+      "description": "One workload. Give either image (typed values of the generic chart) or chart (free-form values of that chart), never both.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "description": "false: nothing is generated for this entry.", "type": "boolean", "default": true },
+        "namespace": { "$ref": "#/$defs/name" },
+        "project": { "description": "Argo CD project.", "type": "string", "default": "default" },
+        "image": { "$ref": "#/$defs/image" },
+        "chart": { "$ref": "#/$defs/chart" },
+        "values": { "type": "object" }
+      },
+      "if": { "type": "object", "required": ["chart"] },
+      "then": { "not": { "type": "object", "required": ["image"] } },
+      "else": {
+        "type": "object",
+        "required": ["image"],
+        "properties": {
+          "image": {
+            "type": "object",
+            "required": ["repository"],
+            "anyOf": [
+              { "type": "object", "required": ["tag"], "properties": { "tag": { "type": "string", "minLength": 1 } } },
+              { "type": "object", "required": ["digest"], "properties": { "digest": { "type": "string", "minLength": 1 } } }
+            ]
+          },
+          "values": { "$ref": "#/$defs/workload" }
+        }
+      }
+    },
+    "workload": {
+      "description": "Values of charts/generic-app: everything needed to run one container as any workload kind. Generates the workload, its ServiceAccount, and on demand a Service, ConfigMap, Ingress, HTTPRoute, autoscaler, disruption budget and volume claim.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "description": "The workload kind to generate.", "enum": ["Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"], "default": "Deployment" },
+        "image": { "$ref": "#/$defs/image" },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" } } }
+        },
+        "replicas": { "type": "integer", "minimum": 0, "default": 1 },
+        "command": { "type": "array", "items": { "type": "string" } },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "env": {
+          "description": "NAME: value, or NAME: {valueFrom: ...} to read a Secret or ConfigMap key.",
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "type": "object" }]
+          }
+        },
+        "envFrom": { "type": "array", "items": { "type": "object" } },
+        "config": {
+          "description": "Files mounted read-only at configMountPath. Key = file name. A string is written as-is, a map or list as YAML.",
+          "type": "object"
+        },
+        "configMountPath": { "type": "string", "default": "/config" },
+        "ports": {
+          "description": "name: containerPort. Generates the container ports and, with service.enabled, a Service.",
+          "type": "object",
+          "propertyNames": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,13}[a-z0-9])?$" },
+          "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "type": { "enum": ["ClusterIP", "NodePort", "LoadBalancer"], "default": "ClusterIP" },
+            "annotations": { "$ref": "#/$defs/stringMap" }
+          }
+        },
+        "probes": {
+          "description": "Standard Kubernetes probe specs.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "liveness": { "type": "object" },
+            "readiness": { "type": "object" },
+            "startup": { "type": "object" }
+          }
+        },
+        "resources": {
+          "description": "Standard Kubernetes resource requests and limits.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "requests": { "type": "object" },
+            "limits": { "type": "object" }
+          }
+        },
+        "serviceAccount": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "create": { "type": "boolean", "default": true },
+            "name": { "description": "An existing account, used when create is false.", "type": "string" },
+            "annotations": { "$ref": "#/$defs/stringMap" },
+            "automountToken": { "type": "boolean", "default": false }
+          }
+        },
+        "podSecurityContext": { "description": "Standard pod securityContext. The defaults meet the restricted Pod Security Standard.", "type": "object" },
+        "securityContext": { "description": "Standard container securityContext.", "type": "object" },
+        "podLabels": { "$ref": "#/$defs/stringMap" },
+        "podAnnotations": { "$ref": "#/$defs/stringMap" },
+        "nodeSelector": { "$ref": "#/$defs/stringMap" },
+        "tolerations": { "type": "array", "items": { "type": "object" } },
+        "affinity": { "type": "object" },
+        "topologySpreadConstraints": { "type": "array", "items": { "type": "object" } },
+        "persistence": {
+          "description": "One volume at mountPath; one per replica for a StatefulSet.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "size": { "type": "string", "default": "1Gi" },
+            "storageClass": { "description": "Empty = the cluster's default class. Set it per cluster when there is none.", "type": "string" },
+            "accessModes": {
+              "type": "array",
+              "items": { "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"] }
+            },
+            "mountPath": { "type": "string", "default": "/data" }
+          }
+        },
+        "volumes": { "description": "Extra pod volumes.", "type": "array", "items": { "type": "object" } },
+        "volumeMounts": { "description": "Extra mounts of the main container.", "type": "array", "items": { "type": "object" } },
+        "initContainers": { "description": "Full container specs.", "type": "array", "items": { "type": "object" } },
+        "sidecars": { "description": "Full container specs.", "type": "array", "items": { "type": "object" } },
+        "ingress": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "className": { "type": "string" },
+            "host": { "type": "string" },
+            "path": { "type": "string", "default": "/" },
+            "port": { "description": "A name from ports.", "type": "string", "default": "http" },
+            "tlsSecret": { "type": "string" },
+            "annotations": { "$ref": "#/$defs/stringMap" }
+          },
+          "if": { "type": "object", "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+          "then": { "type": "object", "required": ["host"], "properties": { "host": { "type": "string", "minLength": 1 } } }
+        },
+        "httpRoute": {
+          "description": "Gateway API route.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "gateway": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string" },
+                "namespace": { "type": "string" }
+              }
+            },
+            "hostnames": { "type": "array", "items": { "type": "string" } },
+            "path": { "type": "string", "default": "/" },
+            "port": { "description": "A name from ports.", "type": "string", "default": "http" }
+          },
+          "if": { "type": "object", "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+          "then": {
+            "type": "object",
+            "required": ["gateway"],
+            "properties": {
+              "gateway": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string", "minLength": 1 } } }
+            }
+          }
+        },
+        "autoscaling": {
+          "description": "Deployment and StatefulSet. Needs metrics-server.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "minReplicas": { "type": "integer", "minimum": 1 },
+            "maxReplicas": { "type": "integer", "minimum": 1 },
+            "cpuUtilization": { "type": "integer", "minimum": 1, "maximum": 100 }
+          }
+        },
+        "pdb": {
+          "description": "Disruption budget for a Deployment or StatefulSet.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "maxUnavailable": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "string" }] }
+          }
+        },
+        "schedule": { "description": "Cron expression. Required for kind CronJob.", "type": "string" },
+        "job": {
+          "description": "Job and CronJob settings.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "restartPolicy": { "enum": ["OnFailure", "Never"], "default": "OnFailure" },
+            "backoffLimit": { "type": "integer", "minimum": 0 },
+            "concurrencyPolicy": { "enum": ["Allow", "Forbid", "Replace"], "default": "Forbid" }
+          }
+        },
+        "extraObjects": { "description": "Any other Kubernetes manifests to generate with the workload.", "type": "array", "items": { "type": "object" } }
+      },
+      "if": { "type": "object", "properties": { "kind": { "const": "CronJob" } }, "required": ["kind"] },
+      "then": { "type": "object", "required": ["schedule"], "properties": { "schedule": { "type": "string", "minLength": 1 } } }
+    }
+  }
+}

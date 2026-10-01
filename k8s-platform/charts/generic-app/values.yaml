@@ -1,0 +1,110 @@
+# charts/generic-app/values.yaml - every setting of the generic chart, with safe defaults.
+# Set them per app under apps.<name>.values in config/global.yaml (or in a cluster file).
+# The image block is filled from apps.<name>.image.
+
+kind: Deployment            # Deployment | StatefulSet | DaemonSet | Job | CronJob
+
+image:
+  repository: ""
+  tag: ""                   # quote it: "1.30" stays 1.30, an unquoted 1.30 becomes 1.3
+  digest: ""                # sha256:...; wins over the tag
+  pullPolicy: IfNotPresent
+imagePullSecrets: []        # [{name: my-registry}]
+
+replicas: 1
+command: []
+args: []
+env: {}                     # NAME: value   or   NAME: {valueFrom: {secretKeyRef: {name: s, key: k}}}
+envFrom: []                 # [{secretRef: {name: my-secret}}]
+
+# Files mounted read-only at configMountPath. A string is written as-is,
+# a map or list is written as YAML. A change restarts the pods.
+config: {}
+configMountPath: /config
+
+ports: {}                   # name: containerPort, for example http: 8080
+service:
+  enabled: true             # a Service is created only when ports are set
+  type: ClusterIP
+  annotations: {}
+
+probes: {}                  # liveness / readiness / startup: standard Kubernetes probe specs
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+serviceAccount:
+  create: true
+  name: ""                  # an existing account, used when create is false
+  annotations: {}           # for example a workload identity annotation
+  automountToken: false
+
+# These defaults satisfy the "restricted" Pod Security Standard.
+# The image must run as a non-root user; set runAsUser when it declares none.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+
+podLabels: {}
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+persistence:
+  enabled: false            # one volume at mountPath; one per replica for a StatefulSet
+  size: 1Gi
+  storageClass: ""          # empty = the cluster's default class; set it per cluster when there is none
+  accessModes: [ReadWriteOnce]
+  mountPath: /data
+
+volumes: []                 # extra pod volumes
+volumeMounts: []            # extra mounts for the main container
+initContainers: []          # full container specs
+sidecars: []                # full container specs
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  path: /
+  port: http                # a name from ports
+  tlsSecret: ""
+  annotations: {}
+
+httpRoute:                  # Gateway API
+  enabled: false
+  gateway:
+    name: ""
+    namespace: ""
+  hostnames: []
+  path: /
+  port: http                # a name from ports
+
+autoscaling:                # Deployment and StatefulSet; needs metrics-server
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  cpuUtilization: 80
+
+pdb:                        # Deployment and StatefulSet
+  enabled: false
+  maxUnavailable: 1
+
+schedule: ""                # CronJob only, for example "0 2 * * *"
+job:                        # Job and CronJob
+  restartPolicy: OnFailure
+  backoffLimit: 3
+  concurrencyPolicy: Forbid # CronJob only
+
+extraObjects: []            # any other manifests; values may use template syntax

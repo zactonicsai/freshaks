@@ -1,0 +1,13 @@
+# Any cluster that already exists: Docker Desktop, Rancher Desktop, k3s, OpenShift, GKE, on-prem.
+# Nothing is created or destroyed; the platform is only bootstrapped on it and removed from it.
+cluster:
+  type: existing
+  name: demo-existing
+  kubeconfig: ~/.kube/config
+  context: docker-desktop
+  kubernetesVersion: "1.37"     # informational here; the gate checks the live version
+
+# Switch off add-ons the cluster already runs.
+# addons:
+#   metrics-server:
+#     enabled: false

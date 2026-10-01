@@ -1,0 +1,28 @@
+# IBM Cloud Kubernetes Service (VPC).
+cluster:
+  type: iks
+  name: demo-iks
+  region: us-south
+  zone: us-south-1
+  resourceGroup: Default
+  kubernetesVersion: "1.35"
+  nodes:
+    count: 2
+    size: bx2.4x16
+
+state:
+  backend: s3                   # IBM Cloud Object Storage through its S3 API (HMAC keys in AWS_* variables)
+  config:
+    bucket: your-terraform-state-bucket
+    key: demo-iks/{stack}.tfstate
+    region: us-south
+    endpoints:
+      s3: https://s3.us-south.cloud-object-storage.appdomain.cloud
+    skip_credentials_validation: true
+    skip_region_validation: true
+    skip_requesting_account_id: true
+    skip_metadata_api_check: true
+    skip_s3_checksum: true
+
+jenkins:
+  credentialsId: deploy-env-demo-iks   # IC_API_KEY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY

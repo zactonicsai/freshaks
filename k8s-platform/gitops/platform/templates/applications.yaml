@@ -1,0 +1,65 @@
+{{- /*
+One Argo CD Application per enabled entry in "addons" and "apps".
+Add-ons sync first (wave 0). Apps follow once the add-ons are healthy (wave 10).
+An entry with "chart" installs that Helm chart; any other entry uses charts/generic-app.
+*/ -}}
+{{- $root := . -}}
+{{- $repoURL := required "gitops.repoURL is required" .Values.gitops.repoURL -}}
+{{- $revision := .Values.gitops.revision | default "HEAD" -}}
+{{- range $layer := list "addons" "apps" }}
+{{- range $name, $item := index $root.Values $layer | default dict }}
+{{- if and (kindIs "map" $item) (eq (include "platform.enabled" $item) "true") }}
+{{- $hosted := and (eq $layer "addons") (eq (include "platform.hosted" (dict "root" $root "name" $name "addon" $item)) "true") }}
+{{- if not $hosted }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $name }}
+  namespace: argocd
+  labels:
+    platform/layer: {{ $layer }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ ternary "0" "10" (eq $layer "addons") | quote }}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io # deleting the Application deletes what it deployed
+spec:
+  project: {{ $item.project | default "default" }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $item.namespace | default $name }}
+  source:
+    {{- if $item.chart }}
+    repoURL: {{ required (printf "%s.%s.chart.repo is required" $layer $name) $item.chart.repo }}
+    chart: {{ required (printf "%s.%s.chart.name is required" $layer $name) $item.chart.name }}
+    targetRevision: {{ required (printf "%s.%s.chart.version is required" $layer $name) $item.chart.version | quote }}
+    helm:
+      releaseName: {{ $name }}
+      valuesObject:
+        {{- toYaml ($item.values | default dict) | nindent 8 }}
+    {{- else }}
+    repoURL: {{ $repoURL }}
+    targetRevision: {{ $revision | quote }}
+    path: charts/generic-app
+    helm:
+      releaseName: {{ $name }}
+      valuesObject:
+        {{- toYaml (mergeOverwrite (dict "image" ($item.image | default dict)) ($item.values | default dict)) | nindent 8 }}
+    {{- end }}
+  syncPolicy:
+    automated:
+      prune: true # remove what was removed from Git
+      selfHeal: true # undo manual changes in the cluster
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

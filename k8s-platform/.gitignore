@@ -1,0 +1,11 @@
+# Generated per run: merged config, kubeconfigs, plans, Terraform working directories.
+.build/
+# Local Terraform state (clusters without a "state" block).
+.state/
+# Written by scripts/lib/common.sh from the "state" block of the cluster file.
+backend.tf.json
+*.tfplan
+.terraform/
+*.tfstate
+*.tfstate.*
+# Do commit .terraform.lock.hcl: it pins the provider builds.

@@ -1,0 +1,62 @@
+// Template for an APPLICATION repository (copy it there as "Jenkinsfile").
+// It builds and pushes an image, then records the new version in the platform repository.
+// It never touches a cluster: the commit is the deployment, and Argo CD rolls it out.
+
+pipeline {
+  agent { label 'docker' }
+
+  options {
+    disableConcurrentBuilds()
+    timestamps()
+  }
+
+  environment {
+    APP           = 'hello-web'                               // key under apps: in config/global.yaml
+    IMAGE         = 'registry.example.com/team/hello-web'
+    PLATFORM_REPO = 'https://github.com/your-org/k8s-platform.git'
+    TAG           = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}" // unique and traceable, never "latest"
+  }
+
+  stages {
+    stage('Build and push') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'registry',
+                                          usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_PASSWORD')]) {
+          sh '''
+            echo "$REGISTRY_PASSWORD" | docker login "${IMAGE%%/*}" --username "$REGISTRY_USER" --password-stdin
+            docker build --tag "$IMAGE:$TAG" .
+            docker push "$IMAGE:$TAG"
+            # The digest pins the exact bytes that were built.
+            docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:$TAG" | cut -d@ -f2 > digest.txt
+          '''
+        }
+      }
+    }
+
+    stage('Record the version in Git') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'platform-repo',
+                                          usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+          sh '''
+            # The token is handed to git by a helper, so it never lands in a URL or in .git/config.
+            helper='!f() { echo "username=$GIT_USER"; echo "password=$GIT_TOKEN"; }; f'
+            rm -rf platform
+            git -c credential.helper="$helper" clone --depth 1 "$PLATFORM_REPO" platform
+            cd platform
+            scripts/set-version.sh "$APP" "$TAG" "$(cat ../digest.txt)"
+            if git diff --quiet; then echo "version already recorded"; exit 0; fi
+            git -c user.name=jenkins -c user.email=jenkins@example.com commit --all --message "release: $APP $TAG"
+            # Development clusters follow main. For production, push a branch and open a pull request instead.
+            git -c credential.helper="$helper" push origin HEAD:main
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
+  }
+}

@@ -1,0 +1,106 @@
+// Platform pipeline: plan, deploy or destroy one cluster.
+// It only calls the scripts in scripts/, so Jenkins and a laptop do exactly the same thing.
+// Workloads are not deployed from here: Argo CD applies what Git declares.
+//
+// Agent requirements: bash, terraform (or tofu), kubectl, helm, yq v4, shellcheck,
+// and the CLI of the cluster type (kind + docker/podman, aws, az or ibmcloud).
+
+// Runs body with the cluster's credentials. The cluster file names an optional
+// Jenkins "Secret file" credential (jenkins.credentialsId) made of KEY=VALUE lines;
+// scripts/lib/common.sh sources it. Nothing secret is stored in Git.
+def withClusterCredentials(Closure body) {
+  def id = sh(returnStdout: true,
+              script: 'yq -r \'.jenkins.credentialsId // ""\' "config/clusters/$CLUSTER.yaml"').trim()
+  if (id) {
+    withCredentials([file(credentialsId: id, variable: 'DEPLOY_ENV_FILE')]) { body() }
+  } else {
+    body()
+  }
+}
+
+// True when the cluster file sets cluster.protect: true (Validate has merged the config).
+def isProtected() {
+  return sh(returnStdout: true,
+            script: 'yq -r \'.cluster.protect // false\' ".build/$CLUSTER/config.yaml"').trim() == 'true'
+}
+
+pipeline {
+  agent { label 'platform' }
+
+  parameters {
+    string(name: 'CLUSTER', defaultValue: 'local-docker',
+           description: 'A file name in config/clusters, without .yaml')
+    choice(name: 'ACTION', choices: ['plan', 'deploy', 'destroy'],
+           description: 'plan changes nothing')
+    string(name: 'CONFIRM_DESTROY', defaultValue: '',
+           description: 'Destroy only: type the cluster name again')
+  }
+
+  options {
+    disableConcurrentBuilds()
+    timestamps()
+    timeout(time: 2, unit: 'HOURS')
+    buildDiscarder(logRotator(numToKeepStr: '30'))
+  }
+
+  environment {
+    CLUSTER = "${params.CLUSTER}"
+    TF_BIN  = 'terraform' // or 'tofu'
+  }
+
+  stages {
+    stage('Validate') {
+      steps {
+        sh 'scripts/validate.sh "$CLUSTER"'
+      }
+    }
+
+    stage('Plan') {
+      when { expression { params.ACTION != 'destroy' } }
+      steps {
+        script {
+          withClusterCredentials { sh 'scripts/deploy.sh "$CLUSTER" plan' }
+        }
+      }
+    }
+
+    stage('Approve') {
+      when { expression { params.ACTION == 'deploy' && isProtected() } }
+      steps {
+        timeout(time: 30, unit: 'MINUTES') {
+          input message: "Apply the plan above to ${params.CLUSTER}?", ok: 'Apply'
+        }
+      }
+    }
+
+    stage('Deploy') {
+      when { expression { params.ACTION == 'deploy' } }
+      steps {
+        script {
+          withClusterCredentials { sh 'scripts/deploy.sh "$CLUSTER" apply' }
+        }
+      }
+    }
+
+    stage('Destroy') {
+      when { expression { params.ACTION == 'destroy' } }
+      steps {
+        script {
+          if (params.CONFIRM_DESTROY != params.CLUSTER) {
+            error 'CONFIRM_DESTROY must equal CLUSTER'
+          }
+          withClusterCredentials { sh 'scripts/destroy.sh "$CLUSTER" --yes' }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      // What Argo CD will create, as rendered by the Validate stage.
+      archiveArtifacts artifacts: '.build/*/applications.yaml', allowEmptyArchive: true
+      // Plans and kubeconfigs hold secrets: never leave them on the agent.
+      cleanWs()
+    }
+  }
+}

@@ -1,0 +1,22 @@
+# Azure Kubernetes Service.
+cluster:
+  type: aks
+  name: demo-aks
+  region: westeurope
+  kubernetesVersion: "1.36"
+  protect: true
+  nodes:
+    count: 3
+    size: Standard_D4s_v5
+
+state:
+  backend: azurerm
+  config:
+    resource_group_name: rg-terraform-state
+    storage_account_name: yourtfstateaccount
+    container_name: tfstate
+    key: demo-aks/{stack}.tfstate
+    use_azuread_auth: true
+
+jenkins:
+  credentialsId: deploy-env-demo-aks   # ARM_CLIENT_ID, ARM_TENANT_ID, ARM_SUBSCRIPTION_ID, ...

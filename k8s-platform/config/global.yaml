@@ -1,0 +1,119 @@
+# config/global.yaml - the single source of truth.
+# Three readers consume this same file:
+#   shell scripts (yq)  ·  Terraform (yamldecode)  ·  Argo CD (Helm values)
+# One file from config/clusters/ is deep-merged on top of it:
+# maps merge key by key, lists and scalars are replaced.
+
+platform:
+  name: demo
+  # Conformance gate: deploy.sh refuses any cluster older than this.
+  # Keep it at the oldest minor the Kubernetes project still supports.
+  minKubernetesVersion: "1.35"
+
+gitops:
+  repoURL: https://github.com/your-org/k8s-platform.git
+  revision: main                # a cluster file can pin a tag instead
+  argocd:
+    chartVersion: 10.9.5        # argo-helm chart "argo-cd" (Argo CD v3.5.3)
+    appsChartVersion: 2.0.6     # argo-helm chart "argocd-apps" (creates the root Application)
+    values:                     # Helm values for the Argo CD chart itself
+      configs:
+        cm:
+          # Report child Application health to the root app, so sync waves
+          # can hold apps back until add-ons are healthy.
+          resource.customizations.health.argoproj.io_Application: |
+            hs = {}
+            hs.status = "Progressing"
+            hs.message = ""
+            if obj.status ~= nil and obj.status.health ~= nil then
+              hs.status = obj.status.health.status
+              if obj.status.health.message ~= nil then
+                hs.message = obj.status.health.message
+              end
+            end
+            return hs
+
+# Defaults for every cluster. Each file in config/clusters/ sets type, name,
+# version and size, and overrides anything else that differs.
+cluster:
+  hostedAddons: true            # prefer the provider's managed add-on when the catalog has one
+  protect: false                # true: Jenkins asks for approval, destroy.sh refuses
+  nodes:
+    count: 2                    # worker nodes
+
+# Which add-ons each cluster type can run as a provider-managed (hosted) add-on.
+#   <addon key>: <provider add-on name>  -> Terraform enables it, Argo CD skips the chart
+#   <addon key>: builtin                 -> the provider ships it already, nobody installs it
+# No entry = Argo CD installs the Helm chart from "addons" below.
+# Opt out: "hosted: false" on one add-on, or cluster.hostedAddons: false for every named entry.
+hostedAddonCatalog:
+  eks:                          # value = EKS add-on name
+    metrics-server: metrics-server
+    cert-manager: cert-manager
+  aks:                          # value = AKS cluster extension type
+    metrics-server: builtin
+  iks:                          # value = IBM Cloud managed add-on name
+    metrics-server: builtin
+  vks:
+    metrics-server: builtin     # confirm on your VKS release: kubectl -n kube-system get deploy metrics-server
+  kind: {}
+  existing: {}
+
+# Platform services: third-party Helm charts, pinned.
+addons:
+  metrics-server:
+    enabled: true
+    namespace: kube-system
+    chart:
+      repo: https://kubernetes-sigs.github.io/metrics-server
+      name: metrics-server
+      version: 3.14.0
+    values: {}
+  cert-manager:
+    enabled: true
+    namespace: cert-manager
+    chart:
+      repo: https://charts.jetstack.io
+      name: cert-manager
+      version: v1.21.2
+    values:
+      crds:
+        enabled: true
+
+# Your workloads. An entry with "image" uses charts/generic-app;
+# an entry with "chart" (same shape as an add-on) uses that Helm chart instead.
+apps:
+  hello-web:                    # a Deployment with a Service
+    namespace: demo
+    image:
+      repository: ghcr.io/stefanprodan/podinfo
+      tag: 6.15.0
+      digest: ""                # sha256:... written by the release pipeline; wins over the tag
+    values:
+      replicas: 2
+      ports:
+        http: 9898
+      env:
+        PODINFO_UI_MESSAGE: Hello from the platform
+      podSecurityContext:
+        runAsUser: 10001        # numeric UID so runAsNonRoot can be verified
+      probes:
+        readiness:
+          httpGet: { path: /readyz, port: http }
+        liveness:
+          httpGet: { path: /healthz, port: http }
+  nightly-report:               # a CronJob with a mounted config file
+    namespace: demo
+    image:
+      repository: docker.io/library/busybox
+      tag: "1.37"
+    values:
+      kind: CronJob
+      schedule: "0 2 * * *"
+      command: [sh, -c, "date && cat /config/report.yaml"]
+      podSecurityContext:
+        runAsUser: 65534
+      config:
+        report.yaml:
+          title: Nightly report
+          recipients: [ops@example.com]

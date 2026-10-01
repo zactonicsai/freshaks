@@ -1,0 +1,8 @@
+# The real values are /config/global.yaml and /config/clusters/<cluster>.yaml.
+# The root Application passes both files to this chart, in that order.
+# These empty defaults only keep "helm lint" and "helm template" usable on their own.
+cluster: {}
+gitops: {}
+hostedAddonCatalog: {}
+addons: {}
+apps: {}

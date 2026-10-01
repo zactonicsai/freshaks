@@ -1,0 +1,25 @@
+# Amazon EKS.
+cluster:
+  type: eks
+  name: demo-eks
+  region: us-east-1
+  kubernetesVersion: "1.36"
+  protect: true
+  nodes:
+    count: 3
+    max: 6
+    size: m7i.large
+  network:
+    cidr: 10.0.0.0/16
+
+state:                          # any Terraform backend; {stack} becomes "cluster" or "bootstrap"
+  backend: s3
+  config:
+    bucket: your-terraform-state-bucket
+    key: demo-eks/{stack}.tfstate
+    region: us-east-1
+    encrypt: true
+    use_lockfile: true
+
+jenkins:
+  credentialsId: deploy-env-demo-eks   # Jenkins "Secret file": KEY=VALUE lines (AWS_*, TF_VAR_git_token)

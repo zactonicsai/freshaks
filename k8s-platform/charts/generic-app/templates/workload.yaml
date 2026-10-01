@@ -1,0 +1,85 @@
+{{- $kind := .Values.kind -}}
+{{- if not (has $kind (list "Deployment" "StatefulSet" "DaemonSet" "Job" "CronJob")) -}}
+{{- fail (printf "kind must be Deployment, StatefulSet, DaemonSet, Job or CronJob, not %q" (toString $kind)) -}}
+{{- end -}}
+{{- if .Values.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "app.name" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
+---
+{{- end }}
+{{- if eq $kind "CronJob" }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "app.name" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  schedule: {{ required "schedule is required when kind is CronJob" .Values.schedule | quote }}
+  concurrencyPolicy: {{ .Values.job.concurrencyPolicy }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.job.backoffLimit }}
+      template:
+        {{- include "app.pod" . | nindent 8 }}
+{{- else if eq $kind "Job" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "app.name" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+  annotations:
+    # A Job's pod template is immutable. On a change Argo CD replaces the Job, which runs it again.
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  template:
+    {{- include "app.pod" . | nindent 4 }}
+{{- else }}
+apiVersion: apps/v1
+kind: {{ $kind }}
+metadata:
+  name: {{ include "app.name" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  {{- if and (ne $kind "DaemonSet") (not .Values.autoscaling.enabled) }}
+  replicas: {{ .Values.replicas }}
+  {{- end }}
+  {{- if and (eq $kind "Deployment") .Values.persistence.enabled }}
+  strategy:
+    type: Recreate # a ReadWriteOnce volume cannot be shared during a rolling update
+  {{- end }}
+  {{- if eq $kind "StatefulSet" }}
+  serviceName: {{ include "app.name" . }}-headless
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  template:
+    {{- include "app.pod" . | nindent 4 }}
+  {{- if and (eq $kind "StatefulSet") .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          {{- toYaml .Values.persistence.accessModes | nindent 10 }}
+        {{- with .Values.persistence.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}
+{{- end }}

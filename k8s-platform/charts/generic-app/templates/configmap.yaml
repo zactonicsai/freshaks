@@ -1,0 +1,17 @@
+{{- if .Values.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.name" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+data:
+  {{- range $file, $content := .Values.config }}
+  {{ $file }}: |
+    {{- if kindIs "string" $content }}
+    {{- $content | nindent 4 }}
+    {{- else }}
+    {{- toYaml $content | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

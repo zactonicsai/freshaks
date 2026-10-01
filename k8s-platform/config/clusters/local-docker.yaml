@@ -1,0 +1,22 @@
+# Local cluster: kind on Docker.
+cluster:
+  type: kind
+  name: local-docker            # must equal the file name
+  runtime: docker               # docker | podman
+  kubernetesVersion: "1.37.0"
+  # Pin the node image by digest; take it from the release notes of your kind version.
+  nodeImage: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  nodes:
+    count: 1
+
+# No "state" block: Terraform state stays in .state/ on this machine.
+
+addons:
+  metrics-server:
+    values:
+      args: [--kubelet-insecure-tls]   # kind kubelets serve self-signed certificates
+
+apps:
+  hello-web:
+    values:
+      replicas: 1

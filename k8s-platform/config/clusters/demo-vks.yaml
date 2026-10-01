@@ -1,0 +1,33 @@
+# VMware vSphere Kubernetes Service. The cluster is a Cluster API object applied to the Supervisor.
+cluster:
+  type: vks
+  name: demo-vks
+  # The exact Kubernetes release name your Supervisor offers: kubectl get kr
+  kubernetesVersion: v1.35.0---vmware.1-fips-vkr.1
+  clusterClass: builtin-generic-v3.6.0
+  storageClass: your-storage-policy
+  supervisor:
+    kubeconfig: ~/.kube/config  # already logged in to the Supervisor
+    context: your-vsphere-namespace
+    namespace: your-vsphere-namespace
+  nodes:
+    count: 3
+    controlPlane: 3
+    size: best-effort-large     # VM class
+  network:
+    pods: 192.168.0.0/16
+    services: 10.96.0.0/12
+
+state:
+  backend: s3                   # any S3-compatible store on your network, or another backend
+  config:
+    bucket: terraform-state
+    key: demo-vks/{stack}.tfstate
+    region: us-east-1
+    endpoints:
+      s3: https://objects.example.internal
+    use_path_style: true
+    skip_credentials_validation: true
+    skip_region_validation: true
+    skip_requesting_account_id: true
+    skip_metadata_api_check: true

@@ -1,0 +1,145 @@
+  Cluster deleted. Rebuild with: ./rebuild.sh
+
+
+==> Creating kind cluster 'mycluster'
+Creating cluster "mycluster" ...
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
+ ✓ Preparing nodes 📦  
+ ✓ Writing configuration 📜 
+ ✓ Starting control-plane 🕹️ 
+ ✓ Installing CNI 🔌 
+ ✓ Installing StorageClass 💾 
+ ✓ Waiting ≤ 2m0s for control-plane = Ready ⏳ 
+ • Ready after 18s 💚
+Set kubectl context to "kind-mycluster"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-mycluster
+
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+
+==> Preparing local Helm charts
+    Using local chart: charts/base
+    Using local chart: charts/istiod
+    Using local chart: charts/gateway
+    Using local chart: charts/keycloakx
+
+==> Installing Istio (base + istiod)
+Release "istio-base" does not exist. Installing it now.
+NAME: istio-base
+LAST DEPLOYED: Sun Oct  4 17:06:45 2026
+NAMESPACE: istio-system
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+Istio base successfully installed!
+
+To learn more about the release, try:
+  $ helm status istio-base -n istio-system
+  $ helm get all istio-base -n istio-system
+Release "istiod" does not exist. Installing it now.
+NAME: istiod
+LAST DEPLOYED: Sun Oct  4 17:06:47 2026
+NAMESPACE: istio-system
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+"istiod" successfully installed!
+
+To learn more about the release, try:
+  $ helm status istiod -n istio-system
+  $ helm get all istiod -n istio-system
+
+Next steps:
+  * Deploy a Gateway: https://istio.io/latest/docs/setup/additional-setup/gateway/
+  * Try out our tasks to get started on common configurations:
+    * https://istio.io/latest/docs/tasks/traffic-management
+    * https://istio.io/latest/docs/tasks/security/
+    * https://istio.io/latest/docs/tasks/policy-enforcement/
+  * Review the list of actively supported releases, CVE publications and our hardening guide:
+    * https://istio.io/latest/docs/releases/supported-releases/
+    * https://istio.io/latest/news/security/
+    * https://istio.io/latest/docs/ops/best-practices/security/
+
+For further documentation see https://istio.io website
+
+==> Installing Istio ingress gateway
+Release "istio-ingressgateway" does not exist. Installing it now.
+NAME: istio-ingressgateway
+LAST DEPLOYED: Sun Oct  4 17:06:57 2026
+NAMESPACE: istio-ingress
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+"istio-ingressgateway" successfully installed!
+
+To learn more about the release, try:
+  $ helm status istio-ingressgateway -n istio-ingress
+  $ helm get all istio-ingressgateway -n istio-ingress
+
+Next steps:
+  * Deploy an HTTP Gateway: https://istio.io/latest/docs/tasks/traffic-management/ingress/ingress-control/
+  * Deploy an HTTPS Gateway: https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/
+
+==> Deploying Postgres (no sidecar)
+namespace/db created
+secret/postgres-secret created
+persistentvolumeclaim/postgres-data created
+deployment.apps/postgres created
+service/postgres created
+Waiting for deployment "postgres" rollout to finish: 0 of 1 updated replicas are available...
+deployment "postgres" successfully rolled out
+    Postgres ready
+
+==> Restoring database from /Users/zach/freshmart-aks-oidc/keycloak-kind-lab/backups/latest.sql
+    Restore complete
+
+==> Installing Keycloak (Istio sidecar on this pod only)
+Release "keycloak" does not exist. Installing it now.
+NAME: keycloak
+LAST DEPLOYED: Sun Oct  4 17:07:17 2026
+NAMESPACE: keycloak
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+***********************************************************************
+*                                                                     *
+*                Keycloak.X Helm Chart by codecentric AG              *
+*                                                                     *
+***********************************************************************
+
+Keycloak was installed with a Service of type ClusterIP
+
+Create a port-forwarding with the following commands:
+
+export POD_NAME=$(kubectl get pods --namespace keycloak -l "app.kubernetes.io/name=keycloakx,app.kubernetes.io/instance=keycloak" -o name)
+echo "Visit http://127.0.0.1:8080 to use your application"
+kubectl --namespace keycloak port-forward "$POD_NAME" 8080
+
+==> Applying Istio Gateway, VirtualService and egress Sidecar
+gateway.networking.istio.io/keycloak-gateway created
+virtualservice.networking.istio.io/keycloak created
+sidecar.networking.istio.io/keycloak-egress created
+
+==> Waiting for Keycloak to start (first start can take a few minutes)
+Waiting for 1 pods to be ready...
+statefulset rolling update complete 1 pods at revision keycloak-keycloakx-d58c989db...
+
+==> Checking http://localhost:8080
+    Keycloak responded with HTTP 302
+NAME                       READY   STATUS    RESTARTS   AGE
+postgres-557448f48-6j8kx   1/1     Running   0          53s
+NAME                   READY   STATUS    RESTARTS   AGE
+keycloak-keycloakx-0   2/2     Running   0          36s
+
+  Keycloak admin console : http://localhost:8080/admin
+  Login                  : admin / admin
+  Save + destroy         : ./save-and-destroy.sh

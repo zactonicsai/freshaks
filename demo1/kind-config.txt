@@ -3,6 +3,8 @@ kind create cluster --name mycluster
 
 kind delete cluster --name mycluster
 kind create cluster --name mycluster --config kind-config.yaml
+
+kubectl config get-contexts 
 kubectl config use-context kind-mycluster
 
 helm repo add istio https://istio-release.storage.googleapis.com/charts

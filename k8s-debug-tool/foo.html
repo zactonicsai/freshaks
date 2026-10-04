@@ -5,7 +5,7 @@
 body{font-family:Arial,sans-serif;margin:2rem;color:#161616;background:#fff}h1{color:#0f3d75}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d0d7de;padding:.55rem;vertical-align:top;text-align:left}th{background:#eef4fb}pre{white-space:pre-wrap;margin:0}code{white-space:pre-wrap}.meta{color:#525252}
 </style></head><body>
 <h1>Kubernetes Diagnostic Report</h1>
-<p class="meta">Context: kind-mycluster &nbsp; Namespace: default/current</p>
+<p class="meta">Context: kind-mycluster &nbsp; Namespace: keycloak</p>
 <table><thead><tr><th>Status</th><th>Check</th><th>Summary</th><th>Details</th><th>Recommendation</th><th>Command</th></tr></thead>
 <tbody><tr><td>PASS</td><td>cluster connectivity</td><td>API server is reachable</td><td><pre>Kubernetes control plane is running at https://127.0.0.1:56016
 CoreDNS is running at https://127.0.0.1:56016/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
@@ -41,21 +41,46 @@ To further debug and diagnose cluster problems, use &#x27;kubectl cluster-info d
 }</pre></td><td>Keep kubectl within the Kubernetes supported minor-version skew for your cluster.</td><td><code>kubectl version -o json</code></td></tr><tr><td>PASS</td><td>nodes</td><td>1 node(s); 0 with readiness/pressure concerns</td><td><pre>- name: mycluster-control-plane
   ready: &#x27;True&#x27;
   reason: KubeletReady
-  pressures: []</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>deployments</td><td>0 found; 0 not fully ready</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>statefulsets</td><td>0 found; 0 not fully ready</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>daemonsets</td><td>0 found; 0 not fully ready</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>pods</td><td>0 pod(s); 0 with common warning signs</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>services</td><td>1 service(s) found</td><td><pre>- namespace: default
-  name: kubernetes
+  pressures: []</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>deployments</td><td>0 found; 0 not fully ready</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>statefulsets</td><td>1 found; 0 not fully ready</td><td><pre>- namespace: keycloak
+  name: keycloak-keycloakx
+  desired: 1
+  ready: 1</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>daemonsets</td><td>0 found; 0 not fully ready</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>pods</td><td>1 pod(s); 0 with common warning signs</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>services</td><td>2 service(s) found</td><td><pre>- namespace: keycloak
+  name: keycloak-keycloakx-headless
   type: ClusterIP
-  clusterIP: 10.96.0.1
+  clusterIP: None
   ports:
-  - name: https
-    port: 443
+  - name: http
+    port: 80
     protocol: TCP
-    targetPort: 6443</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>service endpoints</td><td>0 endpoint object(s) have no ready addresses</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>persistent volume claims</td><td>0 PVC(s); 0 not Bound</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>ingress</td><td>0 ingress resource(s)</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>network policies</td><td>0 NetworkPolicy resource(s) found</td><td><pre>[]</pre></td><td>When traffic is unexpectedly blocked, check both ingress and egress policies for the source and destination namespaces.</td><td><code></code></td></tr><tr><td>PASS</td><td>cluster DNS pods</td><td>CoreDNS/kube-dns pod lookup</td><td><pre>NAME                       READY   STATUS    RESTARTS   AGE   IP           NODE                      NOMINATED NODE   READINESS GATES
-coredns-559f6c778d-596bv   1/1     Running   0          16m   10.244.0.3   mycluster-control-plane   &lt;none&gt;           &lt;none&gt;
-coredns-559f6c778d-5pmzc   1/1     Running   0          16m   10.244.0.2   mycluster-control-plane   &lt;none&gt;           &lt;none&gt;</pre></td><td></td><td><code>kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide</code></td></tr><tr><td>WARN</td><td>events</td><td>4 warning-like event line(s) detected</td><td><pre>- &#x27;16m         Warning   SystemOOM                 node/mycluster-control-plane   System
-  OOM encountered, victim process: coredns, pid: 72405&#x27;
-- &#x27;16m         Warning   SystemOOM                 node/mycluster-control-plane   System
-  OOM encountered, victim process: coredns, pid: 73108&#x27;
-- &#x27;16m         Warning   SystemOOM                 node/mycluster-control-plane   System
-  OOM encountered, victim process: coredns, pid: 74014&#x27;
-- &#x27;16m         Warning   SystemOOM                 node/mycluster-control-plane   System
-  OOM encountered, victim process: coredns, pid: 74682&#x27;</pre></td><td>Recent Warning events often explain scheduling, image pull, volume, probe, and crash-loop problems.</td><td><code>kubectl get events --sort-by=.lastTimestamp</code></td></tr><tr><td>INFO</td><td>resource metrics</td><td>Metrics API is not available to kubectl top</td><td><pre>error: Metrics API not available</pre></td><td>If CPU/memory metrics are needed, verify Metrics Server (or your platform metrics adapter) is installed and healthy.</td><td><code>kubectl top nodes</code></td></tr><tr><td>PASS</td><td>helm releases</td><td>Helm release inventory</td><td><pre>[]</pre></td><td></td><td><code>helm list -o json</code></td></tr></tbody></table></body></html>
+    targetPort: http
+- namespace: keycloak
+  name: keycloak-keycloakx-http
+  type: ClusterIP
+  clusterIP: 10.96.197.53
+  ports:
+  - name: http-internal
+    port: 9000
+    protocol: TCP
+    targetPort: http-internal
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: https</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>service endpoints</td><td>0 endpoint object(s) have no ready addresses</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>persistent volume claims</td><td>0 PVC(s); 0 not Bound</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>ingress</td><td>0 ingress resource(s)</td><td><pre>[]</pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>network policies</td><td>0 NetworkPolicy resource(s) found</td><td><pre>[]</pre></td><td>When traffic is unexpectedly blocked, check both ingress and egress policies for the source and destination namespaces.</td><td><code></code></td></tr><tr><td>PASS</td><td>cluster DNS pods</td><td>CoreDNS/kube-dns pod lookup</td><td><pre>NAME                       READY   STATUS    RESTARTS   AGE   IP           NODE                      NOMINATED NODE   READINESS GATES
+coredns-559f6c778d-596bv   1/1     Running   0          30m   10.244.0.3   mycluster-control-plane   &lt;none&gt;           &lt;none&gt;
+coredns-559f6c778d-5pmzc   1/1     Running   0          30m   10.244.0.2   mycluster-control-plane   &lt;none&gt;           &lt;none&gt;</pre></td><td></td><td><code>kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide</code></td></tr><tr><td>PASS</td><td>events</td><td>0 warning-like event line(s) detected</td><td><pre>LAST SEEN   TYPE     REASON             OBJECT                           MESSAGE
+29m         Normal   Scheduled          pod/keycloak-keycloakx-0         Successfully assigned keycloak/keycloak-keycloakx-0 to mycluster-control-plane
+29m         Normal   Pulled             pod/keycloak-keycloakx-0         Container image &quot;registry.istio.io/release/proxyv2:1.30.5&quot; already present on machine and can be accessed by the pod
+29m         Normal   Created            pod/keycloak-keycloakx-0         Container created
+29m         Normal   Started            pod/keycloak-keycloakx-0         Container started
+29m         Normal   SuccessfulCreate   statefulset/keycloak-keycloakx   Create Pod keycloak-keycloakx-0 in StatefulSet keycloak-keycloakx successful
+29m         Normal   Pulled             pod/keycloak-keycloakx-0         Container image &quot;registry.istio.io/release/proxyv2:1.30.5&quot; already present on machine and can be accessed by the pod
+29m         Normal   Created            pod/keycloak-keycloakx-0         Container created
+29m         Normal   Started            pod/keycloak-keycloakx-0         Container started
+29m         Normal   Pulling            pod/keycloak-keycloakx-0         Pulling image &quot;quay.io/keycloak/keycloak:26.7.4&quot;
+29m         Normal   Pulled             pod/keycloak-keycloakx-0         Successfully pulled image &quot;quay.io/keycloak/keycloak:26.7.4&quot; in 8.189s (8.189s including waiting). Image size: 266416168 bytes.
+29m         Normal   Created            pod/keycloak-keycloakx-0         Container created
+29m         Normal   Started            pod/keycloak-keycloakx-0         Container started</pre></td><td></td><td><code>kubectl --namespace keycloak get events --sort-by=.lastTimestamp</code></td></tr><tr><td>INFO</td><td>resource metrics</td><td>Metrics API is not available to kubectl top</td><td><pre>error: Metrics API not available</pre></td><td>If CPU/memory metrics are needed, verify Metrics Server (or your platform metrics adapter) is installed and healthy.</td><td><code>kubectl --namespace keycloak top nodes</code></td></tr><tr><td>PASS</td><td>helm releases</td><td>Helm release inventory</td><td><pre>[{&quot;name&quot;:&quot;keycloak&quot;,&quot;namespace&quot;:&quot;keycloak&quot;,&quot;revision&quot;:&quot;1&quot;,&quot;updated&quot;:&quot;2026-10-04 16:22:37.280083 -0500 CDT&quot;,&quot;status&quot;:&quot;deployed&quot;,&quot;chart&quot;:&quot;keycloakx-7.3.2&quot;,&quot;app_version&quot;:&quot;26.7.4&quot;}]</pre></td><td></td><td><code>helm --namespace keycloak list -o json</code></td></tr></tbody></table></body></html>

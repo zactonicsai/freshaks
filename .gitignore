@@ -12,3 +12,5 @@ tests/playwright/test-results/
 tests/playwright/playwright-report/
 tests/go-client/go-client
 *.pyc
+gitopschatg/seed/app-repo/.gradle/
+

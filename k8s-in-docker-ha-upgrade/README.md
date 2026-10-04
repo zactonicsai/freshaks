@@ -559,8 +559,10 @@ cache; `docker image prune -a` removes them if you want the disk space back.
 
 **Not done**
 
-- **Nothing ran on a real Docker engine.** K3s in containers, the load balancer, the
-  registries, real pods, real HTTP traffic: unproven.
+- **Nothing ran on a real Docker engine in my tests.** K3s in containers, the load balancer,
+  the registries, real pods, real HTTP traffic: unproven. A first real run already found one
+  wrong assumption about what the K3s image contains (it broke the "wait for the API" step
+  and is fixed); expect that others may surface.
 - **NFS mounts inside the K3s node containers** are the most likely first-run problem. They
   should work (the node's mount program was inspected), and `03-install-storage.sh` tests
   them early and stops with a clear message.

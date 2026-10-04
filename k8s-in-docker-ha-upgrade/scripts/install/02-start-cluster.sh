@@ -54,9 +54,21 @@ run docker compose up -d
 run docker compose ps
 
 # Announce the step.
-step "Wait for the Kubernetes API (up to 3 minutes)"
-# Asks the server container until its API answers "ok".
-wait_api_ready 180
+step "Wait until the server has written its kubeconfig (up to 3 minutes)"
+# Seconds waited so far.
+waited=0
+# K3s writes the file early during its start. "test -s" succeeds when the
+# file exists and is not empty.
+until docker exec "${SERVER_CONTAINER}" test -s /etc/rancher/k3s/k3s.yaml 2>/dev/null; do
+  # Give up after 3 minutes and show why.
+  if (( waited >= 180 )); then docker logs --tail 30 "${SERVER_CONTAINER}" || true; fail "The K3s server did not start. Its last log lines are shown above."; fi
+  # Wait a little before the next try.
+  sleep 5
+  # Count the waiting time.
+  waited=$((waited + 5))
+done
+# Report success.
+ok "the server has written its kubeconfig"
 
 # Announce the step.
 step "Write the kubeconfig files"
@@ -66,6 +78,11 @@ step "Write the kubeconfig files"
 (umask 077 && docker exec "${SERVER_CONTAINER}" cat /etc/rancher/k3s/k3s.yaml | sed "s|https://127.0.0.1:6443|https://server:6443|" > "${KUBECONFIG_TOOLS}")
 # ... and one for a kubectl on your own machine, through the published port.
 (umask 077 && docker exec "${SERVER_CONTAINER}" cat /etc/rancher/k3s/k3s.yaml | sed "s|https://127.0.0.1:6443|https://127.0.0.1:${API_PORT}|" > "${KUBECONFIG_HOST}")
+
+# Announce the step.
+step "Wait for the Kubernetes API (up to 3 minutes)"
+# Asks the API (with the kubectl of the tools container) until it answers "ok".
+wait_api_ready 180
 # From here on kubectl and helm work (they run in the tools container).
 run kubectl version
 

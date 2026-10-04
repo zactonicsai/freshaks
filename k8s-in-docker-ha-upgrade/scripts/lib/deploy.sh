@@ -260,9 +260,11 @@ wait_workloads_ready() {
 wait_api_ready() {
   # $1 = seconds to wait.
   local timeout="${1:-180}" waited=0
-  # K3s contains its own kubectl ("k3s kubectl"); /readyz answers "ok" when
-  # the API is up. Asking inside the server container needs no kubeconfig.
-  until docker exec "${SERVER_CONTAINER}" k3s kubectl get --raw /readyz >/dev/null 2>&1; do
+  # /readyz answers "ok" when the API is up. The question is asked with the
+  # kubectl of the tools container - the one this project installs itself -
+  # so nothing depends on which programs the K3s image happens to contain.
+  # --request-timeout keeps a hanging connection from blocking the loop.
+  until kubectl get --raw /readyz --request-timeout=5s >/dev/null 2>&1; do
     # Give up after the timeout and show the last log lines of the server.
     if (( waited >= timeout )); then docker logs --tail 30 "${SERVER_CONTAINER}" || true; fail "The Kubernetes API did not come back within ${timeout}s."; fi
     # Wait a little before the next try.

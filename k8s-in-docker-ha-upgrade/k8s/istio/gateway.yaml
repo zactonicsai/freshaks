@@ -1,0 +1,25 @@
+# What the ingress gateway listens on. One Gateway for all three host names.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: public-gateway
+  namespace: istio-ingress
+spec:
+  # Apply to the pods of the "istio-ingressgateway" Helm release.
+  selector:
+    istio: ingressgateway
+  servers:
+    # Port 443 of the gateway pods: end TLS here with our certificate.
+    # (From your machine this is https://...:__HTTPS_PORT__ - the edge container
+    # and the node port sit in between.)
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*.__BASE_DOMAIN__"
+      tls:
+        # SIMPLE = normal server-side TLS (the browser does not need a certificate).
+        mode: SIMPLE
+        # Secret "public-tls" in the gateway namespace (install/05-apply-mesh-rules.sh).
+        credentialName: public-tls

@@ -1,0 +1,40 @@
+# Keycloak settings in the style of version 25 and newer ("hostname v2").
+# Used by upgrade/30-keycloak-upgrade.sh. Compare with keycloak-legacy-v24.yaml
+# to see every setting that had to change.
+# Values may contain Helm templates; the chart renders them.
+
+env:
+  # Database type.
+  KC_DB: postgres
+  # JDBC address. "postgres" is the stable Service that points at the active PostgreSQL.
+  KC_DB_URL: jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/keycloak
+  # Database user (the password comes from the Secret, see secretEnv).
+  KC_DB_USERNAME: keycloak
+  # Serve plain HTTP on 8080; TLS ends at the Istio ingress gateway and the
+  # mesh encrypts pod-to-pod traffic with mTLS.
+  KC_HTTP_ENABLED: "true"
+  # Expose /health/ready and /health/live (on management port 9000 since 25).
+  KC_HEALTH_ENABLED: "true"
+  # Expose /metrics (on management port 9000 since 25).
+  KC_METRICS_ENABLED: "true"
+  # NEW STYLE (replaces KC_PROXY): trust the X-Forwarded-* headers of the proxy.
+  KC_PROXY_HEADERS: xforwarded
+  # NEW STYLE (replaces KC_HOSTNAME_URL and KC_HOSTNAME_ADMIN_URL): full public URL.
+  KC_HOSTNAME: "https://keycloak.{{ .Values.publicDomain }}"
+  # NEW STYLE (replaces KC_HOSTNAME_STRICT_BACKCHANNEL=false): let the
+  # applications call Keycloak on its internal address for token requests.
+  KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+  # No cache settings: since 26.1 the pods find each other through the database
+  # ("jdbc-ping"), so the DNS lookup of the old setup is no longer needed.
+
+secretEnv:
+  # NEW STYLE (replaces KEYCLOAK_ADMIN): only used when no admin user exists yet.
+  KC_BOOTSTRAP_ADMIN_USERNAME: admin-username
+  # NEW STYLE (replaces KEYCLOAK_ADMIN_PASSWORD).
+  KC_BOOTSTRAP_ADMIN_PASSWORD: admin-password
+  # Database password.
+  KC_DB_PASSWORD: db-password
+
+probes:
+  # Keycloak 25+ serves the health endpoints on the management port.
+  port: 9000

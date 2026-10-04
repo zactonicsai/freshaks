@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reports</title>
+  <!-- Fonts (the page still works with the fallback fonts when they cannot be loaded). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400..700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS v4, compiled in the browser. Fine for a demo; for production
+       build the CSS ahead of time and serve it as a file. -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    /* "Ledger" theme of Reports: aubergine paper, pale ink, apricot marks. */
+    @theme {
+      --color-aubergine: #1B1525;
+      --color-plum: #2A2136;
+      --color-seam: #45385A;
+      --color-ink: #F3ECF7;
+      --color-haze: #B6A9C6;
+      --color-apricot: #FFB86B;
+      --font-display: "DM Serif Display", Georgia, serif;
+      --font-sans: "DM Sans", system-ui, sans-serif;
+      --font-mono: "DM Mono", ui-monospace, monospace;
+    }
+    /* The mark in the masthead: apricot while the app answers, red when not. */
+    #live-dot { background: var(--color-haze); }
+    #live-dot[data-state="up"] { background: var(--color-apricot); }
+    #live-dot[data-state="down"] { background: #FF6B6B; }
+    /* People who asked their system for less motion get none. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-aubergine font-sans text-ink antialiased">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:bg-apricot focus:px-3 focus:py-2 focus:text-aubergine">Skip to content</a>
+
+  <div class="mx-auto max-w-5xl px-5">
+
+    <!-- Masthead: a big serif title and a small table with the live status. -->
+    <header class="grid gap-6 border-b border-seam pb-8 pt-12 sm:grid-cols-[1fr_auto] sm:items-end">
+      <div>
+        <p class="font-mono text-sm text-haze">app2 / second application, same single sign-on</p>
+        <h1 id="app-name" class="font-display text-6xl leading-none sm:text-8xl">Reports</h1>
+      </div>
+      <table class="font-mono text-sm" aria-live="polite">
+        <tbody>
+          <tr><th scope="row" class="pr-4 text-left font-normal text-haze">version</th><td id="live-version">...</td></tr>
+          <tr><th scope="row" class="pr-4 text-left font-normal text-haze">answered by</th><td id="live-pod" class="break-all">...</td></tr>
+          <tr><th scope="row" class="pr-4 text-left font-normal text-haze">checked</th>
+              <td><span id="live-dot" class="mr-2 inline-block size-2 rotate-45" aria-hidden="true"></span><span id="live-time">...</span></td></tr>
+        </tbody>
+      </table>
+    </header>
+
+    <main id="main">
+
+      <p id="session-notice" hidden class="mt-6 border border-apricot px-4 py-3 text-sm">
+        The pod that held your session was replaced. Sign in again - Keycloak still knows you, so you will not need your password.
+      </p>
+
+      <!-- Signed out -->
+      <section id="view-signed-out" class="grid gap-4 border-b border-seam py-8 md:grid-cols-[14rem_1fr]" aria-labelledby="signed-out-title">
+        <h2 id="signed-out-title" class="font-display text-2xl italic text-apricot">Not signed in</h2>
+        <div>
+          <p class="max-w-prose text-haze">If you are already signed in to the Portal, one click is enough: Keycloak remembers your browser and sends you straight back.</p>
+          <a id="signin-link" href="/oauth2/authorization/keycloak"
+             class="mt-5 inline-block bg-apricot px-5 py-3 font-semibold text-aubergine hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Sign in with Keycloak</a>
+          <p class="mt-5 text-sm text-haze">Test users: <span class="font-mono text-ink">alice</span> (admin), <span class="font-mono text-ink">bob</span> and <span class="font-mono text-ink">carol</span>.</p>
+        </div>
+      </section>
+
+      <!-- Signed in -->
+      <section id="view-signed-in" hidden class="grid gap-4 border-b border-seam py-8 md:grid-cols-[14rem_1fr]" aria-labelledby="me-name">
+        <p class="font-display text-2xl italic text-apricot">Signed in</p>
+        <div class="grid gap-6 sm:grid-cols-[1fr_auto]">
+          <div>
+            <h2 id="me-name" class="font-display text-4xl leading-tight"></h2>
+            <p class="mt-1 font-mono text-sm text-haze"><span id="me-username"></span> / <span id="me-email" class="break-all"></span></p>
+            <ul id="me-roles" class="mt-3 flex flex-wrap gap-2" data-chip-class="bg-plum px-2 py-0.5 font-mono text-sm text-apricot"></ul>
+            <p class="mt-3 text-sm text-haze">Session kept by pod <span id="me-pod" class="break-all font-mono text-ink"></span></p>
+            <p class="mt-1 text-xs text-haze">Token issued by <span id="me-issuer" class="break-all font-mono"></span></p>
+          </div>
+          <div class="flex flex-col gap-3 sm:items-end">
+            <a id="other-app-link" href="#"
+               class="border border-apricot px-4 py-2.5 font-medium text-apricot hover:bg-apricot hover:text-aubergine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Open <span id="other-app-name">the other app</span></a>
+            <button id="signout-button" type="button"
+                    class="border border-seam px-4 py-2.5 font-medium hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Sign out</button>
+            <!-- Filled and submitted by app.js. -->
+            <form id="logout-form" method="post" action="/logout" hidden><input id="logout-token" type="hidden" name="_csrf" value=""></form>
+          </div>
+        </div>
+      </section>
+
+      <p id="panels-locked" class="py-8 text-haze">
+        Sign in to see the notes that both apps share, to call the internet through the egress gateway, and to try the admin check.
+      </p>
+
+      <!-- The ledger: one row per topic, title in the margin. -->
+      <div id="panels" hidden>
+
+        <section class="grid gap-4 border-b border-seam py-8 md:grid-cols-[14rem_1fr]" aria-labelledby="notes-title">
+          <div>
+            <h2 id="notes-title" class="font-display text-2xl italic text-apricot">Shared notes</h2>
+            <p class="mt-2 text-sm text-haze">One NFS volume, mounted by every pod of both apps.</p>
+          </div>
+          <div>
+            <form id="note-form" class="flex flex-col gap-3 sm:flex-row">
+              <label for="note-text" class="sr-only">Note text</label>
+              <input id="note-text" type="text" maxlength="280" autocomplete="off" placeholder="Add a line to the ledger"
+                     class="min-w-0 flex-1 border border-seam bg-plum px-3 py-2.5 text-ink placeholder:text-haze/70 focus-visible:outline-2 focus-visible:outline-apricot">
+              <button type="submit"
+                      class="bg-apricot px-5 py-2.5 font-semibold text-aubergine hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Save note</button>
+            </form>
+            <p id="note-status" class="mt-2 min-h-5 font-mono text-sm text-haze" aria-live="polite"></p>
+            <ol id="notes-list" class="mt-2"></ol>
+            <p id="notes-empty" hidden class="py-3 text-haze">The ledger is empty. Write the first line here or in the Portal.</p>
+            <template id="note-template">
+              <li class="grid gap-x-6 gap-y-1 border-t border-seam py-3 sm:grid-cols-[9rem_1fr]">
+                <p class="font-mono text-xs text-haze"><span data-field="time"></span><br><span data-field="author" class="text-apricot"></span> via <span data-field="app"></span></p>
+                <div>
+                  <p data-field="text" class="whitespace-pre-wrap break-words"></p>
+                  <p class="mt-1 font-mono text-xs text-haze">written by pod <span data-field="pod"></span></p>
+                </div>
+              </li>
+            </template>
+          </div>
+        </section>
+
+        <section class="grid gap-4 border-b border-seam py-8 md:grid-cols-[14rem_1fr]" aria-labelledby="egress-title">
+          <div>
+            <h2 id="egress-title" class="font-display text-2xl italic text-apricot">Outbound calls</h2>
+            <p class="mt-2 text-sm text-haze">Only hosts on the allow list, and only through the egress gateway.</p>
+          </div>
+          <div>
+            <div class="flex flex-wrap gap-3">
+              <button id="egress-allowed" type="button"
+                      class="bg-apricot px-4 py-2.5 font-semibold text-aubergine hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Call the allowed host</button>
+              <button id="egress-blocked" type="button"
+                      class="border border-apricot px-4 py-2.5 font-medium text-apricot hover:bg-apricot hover:text-aubergine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Call a blocked host</button>
+            </div>
+            <pre id="egress-result" class="mt-4 min-h-24 overflow-x-auto border border-seam bg-plum p-4 font-mono text-sm" aria-live="polite">Press a button. The answer of the pod shows up here.</pre>
+          </div>
+        </section>
+
+        <section class="grid gap-4 py-8 md:grid-cols-[14rem_1fr]" aria-labelledby="admin-title">
+          <div>
+            <h2 id="admin-title" class="font-display text-2xl italic text-apricot">Admins only</h2>
+            <p class="mt-2 text-sm text-haze">The server reads the role from your token.</p>
+          </div>
+          <div>
+            <button id="admin-button" type="button"
+                    class="border border-seam px-4 py-2.5 font-medium hover:border-apricot hover:text-apricot focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">Open the admin area</button>
+            <pre id="admin-result" class="mt-4 min-h-12 overflow-x-auto border border-seam bg-plum p-4 font-mono text-sm" aria-live="polite"></pre>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="border-t border-seam py-6 text-sm text-haze">
+      <p>This page asks <span class="font-mono text-ink">/api/info</span> every 5 seconds. During an upgrade the pod name at the top changes while the page keeps working.</p>
+    </footer>
+  </div>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>

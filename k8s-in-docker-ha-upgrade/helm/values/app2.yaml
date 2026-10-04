@@ -1,0 +1,13 @@
+# Values for release "app2" of the spring-app chart.
+
+# Name shown in the page header.
+displayName: Reports
+
+# Dark page design.
+theme: reports
+
+otherApp:
+  # The page links to this application to demonstrate single sign-on.
+  name: Portal
+  # First label of its host name (app1.<publicDomain>).
+  host: app1

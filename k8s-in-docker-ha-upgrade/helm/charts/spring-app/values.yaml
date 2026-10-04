@@ -1,0 +1,79 @@
+# Default values of the spring-app chart. Both applications are the SAME image,
+# installed twice. The release name (app1 or app2) is used as: Deployment name,
+# Service name, OIDC client id and first label of the public host name.
+
+image:
+  # The demo image in the local registry, as the Kubernetes nodes see it.
+  repository: registry:5000/demo-app
+  # Image tag = application version.
+  tag: "1.0.0"
+  # Do not re-download an image that is already on the node.
+  pullPolicy: IfNotPresent
+
+# Two pods so that one can be drained during node upgrades.
+replicaCount: 2
+
+# Name shown in the page header and in /api/info.
+displayName: Portal
+
+# Which of the two page designs to serve: "portal" (light) or "reports" (dark).
+theme: portal
+
+# Everything after the first label of the public addresses, as the browser
+# sees it - including the port when it is not 443, e.g. localhost:8443
+publicDomain: localhost:8443
+
+oidc:
+  # Keycloak realm that holds the users and the two clients.
+  realm: demo
+  # In-cluster address of Keycloak. The pods use it for server-to-server calls
+  # (token exchange, signing keys), so those never leave the mesh.
+  internalBaseUrl: http://keycloak.keycloak.svc.cluster.local:8080
+  # Secret with the key "client-secret". Empty = "<release name>-oidc".
+  existingSecret: ""
+
+otherApp:
+  # The "other" application, linked from the page to demonstrate single sign-on.
+  name: Reports
+  # First label of its host name.
+  host: app2
+
+sharedVolume:
+  # ReadWriteMany claim mounted by all pods of both applications.
+  existingClaim: shared-notes
+  # Folder inside the container.
+  mountPath: /data/shared
+
+egress:
+  # External host that is allowed through the Istio egress gateway.
+  allowedHost: api.ipify.org
+  # Path requested on that host (ipify answers with the public IP as JSON).
+  allowedPath: "/?format=json"
+  # External host that is not allowed; used to show that the mesh blocks it.
+  blockedHost: example.com
+
+resources:
+  requests:
+    # Guaranteed CPU share (small, so everything fits on a laptop).
+    cpu: 100m
+    # Guaranteed memory.
+    memory: 256Mi
+  limits:
+    # Hard memory ceiling (the JVM sizes its heap from it).
+    memory: 512Mi
+
+# A new pod must be ready for this many seconds before the rollout continues.
+minReadySeconds: 5
+
+# Seconds a pod waits before it starts to shut down, so the mesh can stop
+# sending it new requests first.
+preStopSleepSeconds: 10
+
+# Total seconds a pod gets to stop (preStop sleep + graceful shutdown).
+terminationGracePeriodSeconds: 45
+
+# Optional: any text. Changing it restarts the pods.
+meshRevision: ""
+
+# Extra annotations for the pods (none by default).
+podAnnotations: {}

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Maven build file of the demo application. One program, deployed twice:
+     as "Portal" (app1) and as "Reports" (app2). -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Spring Boot's parent manages the versions of all Spring libraries
+       (Spring Framework 7, Spring Security 7, Tomcat 11, Jackson 3). -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.example</groupId>
+  <artifactId>demo-app</artifactId>
+  <!-- The version users see is NOT this one: it is passed into the image as
+       the build argument APP_VERSION (see Dockerfile). -->
+  <version>1.0.0</version>
+  <name>demo-app</name>
+  <description>Demo application (Spring Boot, OIDC login through Keycloak)</description>
+
+  <properties>
+    <java.version>21</java.version>
+  </properties>
+
+  <dependencies>
+    <!-- Spring MVC + embedded Tomcat + JSON. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <!-- Spring Security with OAuth2 / OpenID Connect login. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security-oauth2-client</artifactId>
+    </dependency>
+    <!-- Health endpoints for the Kubernetes liveness and readiness probes. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!-- The jar is always called app.jar, whatever the version is. -->
+    <finalName>app</finalName>
+    <plugins>
+      <!-- Packs the application and all libraries into one runnable jar. -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

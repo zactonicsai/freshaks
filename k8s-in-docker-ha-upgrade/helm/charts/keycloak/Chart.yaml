@@ -1,0 +1,12 @@
+# Helm chart metadata. "apiVersion: v2" means the chart needs Helm 3 or newer.
+apiVersion: v2
+# Chart name (also used in labels).
+name: keycloak
+# What this chart is for.
+description: Clustered Keycloak (2+ pods) behind Istio. Version-specific settings live in helm/values/keycloak-*.yaml.
+# "application" charts create workloads.
+type: application
+# Version of the chart itself.
+version: 1.0.0
+# Informational only: the Keycloak version is chosen with image.tag.
+appVersion: "24-26"

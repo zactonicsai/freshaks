@@ -1,0 +1,11 @@
+# Mesh-wide rule (it lives in the Istio root namespace): every pod with a
+# sidecar accepts ONLY mutual-TLS connections. Plain-text traffic between pods
+# is rejected.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT

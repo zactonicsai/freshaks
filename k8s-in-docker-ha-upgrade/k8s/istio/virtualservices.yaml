@@ -1,0 +1,99 @@
+# Routing rules: which host name goes to which Service.
+#
+# Two things appear in every rule:
+#
+# "x-forwarded-port" - the public port (__HTTPS_PORT__) differs from the port the
+#   gateway listens on (443). Applications build links to themselves (for
+#   example the address Keycloak sends the browser back to after login) from
+#   the forwarded headers; without this header they would leave the port out.
+#   The gateway SETS the header, so a value sent by a client is overwritten.
+#
+# "retries" - try a request again on another pod when the first pod could not
+#   take it (connection refused, connection reset before the request was sent,
+#   or a 503 from a pod that is shutting down). This hides pod restarts during
+#   rolling updates. Requests that reached the application are not repeated.
+
+# app1.<domain> -> Service app1 in namespace apps.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: app1
+  namespace: apps
+spec:
+  hosts:
+    - "app1.__BASE_DOMAIN__"
+  # Only for traffic that enters through the public gateway.
+  gateways:
+    - istio-ingress/public-gateway
+  http:
+    - headers:
+        request:
+          set:
+            x-forwarded-port: "__HTTPS_PORT__"
+      route:
+        - destination:
+            host: app1.apps.svc.cluster.local
+            port:
+              number: 8080
+      retries:
+        attempts: 3
+        retryOn: connect-failure,refused-stream,reset-before-request,unavailable,cancelled,503
+---
+# app2.<domain> -> Service app2 in namespace apps.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: app2
+  namespace: apps
+spec:
+  hosts:
+    - "app2.__BASE_DOMAIN__"
+  gateways:
+    - istio-ingress/public-gateway
+  http:
+    - headers:
+        request:
+          set:
+            x-forwarded-port: "__HTTPS_PORT__"
+      route:
+        - destination:
+            host: app2.apps.svc.cluster.local
+            port:
+              number: 8080
+      retries:
+        attempts: 3
+        retryOn: connect-failure,refused-stream,reset-before-request,unavailable,cancelled,503
+---
+# keycloak.<domain> -> Service keycloak in namespace keycloak.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  hosts:
+    - "keycloak.__BASE_DOMAIN__"
+  gateways:
+    - istio-ingress/public-gateway
+  http:
+    # Never expose health and metrics endpoints to the outside.
+    - match:
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /metrics
+      directResponse:
+        status: 404
+    # Everything else goes to Keycloak.
+    - headers:
+        request:
+          set:
+            x-forwarded-port: "__HTTPS_PORT__"
+      route:
+        - destination:
+            host: keycloak.keycloak.svc.cluster.local
+            port:
+              number: 8080
+      retries:
+        attempts: 3
+        retryOn: connect-failure,refused-stream,reset-before-request,unavailable,cancelled,503

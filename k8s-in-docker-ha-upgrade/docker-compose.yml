@@ -1,0 +1,280 @@
+# =============================================================================
+# docker-compose.yml — the whole Kubernetes cluster as Docker containers.
+#
+#   registry    stores the image of the demo application (docker push ...)
+#   hub-cache   a cache in front of Docker Hub, so every image is fetched once
+#   server      Kubernetes control plane (K3s server)
+#   agent-1..3  Kubernetes worker nodes (K3s agents), one per pretend "zone"
+#   edge        HAProxy load balancer in front of the worker nodes
+#   tools       kubectl + helm + curl + openssl (nothing to install on your machine)
+#
+# Do not start it by hand the first time: the scripts write the file ".env"
+# (versions, ports, the cluster token) that this file reads.
+#   ./scripts/install/install-all.sh
+# Afterwards normal commands work:  docker compose ps | logs | stop | start
+# =============================================================================
+
+# Prefix of all container, network and volume names (PROJECT_NAME in config/env.sh).
+name: k8s-ha-demo
+
+# Settings shared by all four Kubernetes nodes ("x-" = ignored by Compose
+# itself, "&k3s-node" = a name to reuse the block below with "<<: *k3s-node").
+x-k3s-node: &k3s-node
+  # Kubernetes runs containers inside this container, which needs full rights.
+  privileged: true
+  # Start again after a crash or a Docker restart, but not after "docker compose stop".
+  restart: unless-stopped
+  # Run-time folders must be real (in-memory) file systems, not image layers.
+  tmpfs:
+    - /run
+    - /var/run
+  # Many pods open many files and start many processes.
+  ulimits:
+    nproc: 65535
+    nofile:
+      soft: 65535
+      hard: 65535
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Local image registry: "docker push localhost:5001/demo-app:1.0.0" lands here.
+  # ---------------------------------------------------------------------------
+  registry:
+    image: ${REGISTRY_IMAGE:?run ./scripts/install/02-start-cluster.sh first}
+    container_name: k8s-ha-demo-registry
+    restart: unless-stopped
+    ports:
+      # Only reachable from this machine (127.0.0.1), not from your network.
+      - "127.0.0.1:${REGISTRY_PORT}:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+    networks:
+      cluster:
+        ipv4_address: ${SUBNET_PREFIX}.6
+
+  # ---------------------------------------------------------------------------
+  # Pull-through cache for Docker Hub. The Kubernetes nodes ask this container
+  # for docker.io images; it fetches each image once and keeps it. Without it
+  # every node would download every image itself and anonymous Docker Hub
+  # users are limited to 100 pulls per 6 hours.
+  # ---------------------------------------------------------------------------
+  hub-cache:
+    image: ${REGISTRY_IMAGE}
+    container_name: k8s-ha-demo-hub-cache
+    restart: unless-stopped
+    environment:
+      # Turns the registry into a cache of this upstream registry.
+      REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+      # Optional Docker Hub login (empty = anonymous).
+      REGISTRY_PROXY_USERNAME: ${DOCKERHUB_USERNAME:-}
+      REGISTRY_PROXY_PASSWORD: ${DOCKERHUB_TOKEN:-}
+    volumes:
+      - hub-cache-data:/var/lib/registry
+    networks:
+      cluster:
+        ipv4_address: ${SUBNET_PREFIX}.7
+
+  # ---------------------------------------------------------------------------
+  # Kubernetes control plane. Its database (SQLite) and certificates live in
+  # the volume "server-data"; replacing the container with a newer image is
+  # how the control plane is upgraded.
+  # ---------------------------------------------------------------------------
+  server:
+    <<: *k3s-node
+    image: ${K3S_IMAGE}:${K3S_SERVER_VERSION}
+    container_name: k8s-ha-demo-server
+    hostname: server
+    command:
+      - server
+      # Name of this node inside Kubernetes.
+      - --node-name=server
+      # Also accept "server" as a name in the API certificate.
+      - --tls-san=server
+      # K3s extras we do not use: Istio is the ingress, the "edge" container is
+      # the load balancer, the NFS pod provides storage, nothing reads metrics.
+      - --disable=traefik
+      - --disable=servicelb
+      - --disable=local-storage
+      - --disable=metrics-server
+      # Keep application pods off the control-plane node.
+      - --node-taint=CriticalAddonsOnly=true:NoExecute
+    environment:
+      # Shared secret that lets agents join this cluster.
+      K3S_TOKEN: ${K3S_TOKEN}
+    volumes:
+      # Cluster database, certificates, downloaded images.
+      - server-data:/var/lib/rancher/k3s
+      # The node's own password; must survive when the container is replaced.
+      - server-node:/etc/rancher/node
+      # Where the node finds the two registries above.
+      - ./docker/k3s/registries.yaml:/etc/rancher/k3s/registries.yaml:ro
+    ports:
+      # Kubernetes API, for a kubectl on your own machine (optional).
+      - "127.0.0.1:${API_PORT}:6443"
+    networks:
+      cluster:
+        # Fixed addresses: a node keeps its address when its container is replaced.
+        ipv4_address: ${SUBNET_PREFIX}.10
+
+  # ---------------------------------------------------------------------------
+  # Worker nodes. Each one has its own version variable, so they can be
+  # upgraded one at a time.
+  # ---------------------------------------------------------------------------
+  agent-1:
+    <<: *k3s-node
+    image: ${K3S_IMAGE}:${K3S_AGENT_1_VERSION}
+    container_name: k8s-ha-demo-agent-1
+    hostname: agent-1
+    command:
+      - agent
+      - --node-name=agent-1
+      # A pretend availability zone; the charts spread pods over zones.
+      - --node-label=topology.kubernetes.io/zone=zone-1
+    environment:
+      # Address of the control plane.
+      K3S_URL: https://server:6443
+      K3S_TOKEN: ${K3S_TOKEN}
+    volumes:
+      - agent-1-data:/var/lib/rancher/k3s
+      - agent-1-node:/etc/rancher/node
+      - ./docker/k3s/registries.yaml:/etc/rancher/k3s/registries.yaml:ro
+      # The "network disk" of the NFS server pod: the same Docker volume is
+      # mounted into every worker, so the NFS pod can run on any of them.
+      - nfs-disk:/mnt/nfs-disk
+    depends_on:
+      - server
+    networks:
+      cluster:
+        ipv4_address: ${SUBNET_PREFIX}.11
+
+  agent-2:
+    <<: *k3s-node
+    image: ${K3S_IMAGE}:${K3S_AGENT_2_VERSION}
+    container_name: k8s-ha-demo-agent-2
+    hostname: agent-2
+    command:
+      - agent
+      - --node-name=agent-2
+      - --node-label=topology.kubernetes.io/zone=zone-2
+    environment:
+      K3S_URL: https://server:6443
+      K3S_TOKEN: ${K3S_TOKEN}
+    volumes:
+      - agent-2-data:/var/lib/rancher/k3s
+      - agent-2-node:/etc/rancher/node
+      - ./docker/k3s/registries.yaml:/etc/rancher/k3s/registries.yaml:ro
+      - nfs-disk:/mnt/nfs-disk
+    depends_on:
+      - server
+    networks:
+      cluster:
+        ipv4_address: ${SUBNET_PREFIX}.12
+
+  agent-3:
+    <<: *k3s-node
+    image: ${K3S_IMAGE}:${K3S_AGENT_3_VERSION}
+    container_name: k8s-ha-demo-agent-3
+    hostname: agent-3
+    command:
+      - agent
+      - --node-name=agent-3
+      - --node-label=topology.kubernetes.io/zone=zone-3
+    environment:
+      K3S_URL: https://server:6443
+      K3S_TOKEN: ${K3S_TOKEN}
+    volumes:
+      - agent-3-data:/var/lib/rancher/k3s
+      - agent-3-node:/etc/rancher/node
+      - ./docker/k3s/registries.yaml:/etc/rancher/k3s/registries.yaml:ro
+      - nfs-disk:/mnt/nfs-disk
+    depends_on:
+      - server
+    networks:
+      cluster:
+        ipv4_address: ${SUBNET_PREFIX}.13
+
+  # ---------------------------------------------------------------------------
+  # Edge load balancer (what a cloud load balancer does for a real cluster):
+  # it accepts https on your machine and passes the connection to a healthy
+  # worker node. TLS is not opened here; that happens in the Istio gateway.
+  # ---------------------------------------------------------------------------
+  edge:
+    image: ${HAPROXY_IMAGE}
+    container_name: k8s-ha-demo-edge
+    restart: unless-stopped
+    environment:
+      # Used inside haproxy.cfg.
+      HTTPS_PORT: ${HTTPS_PORT}
+      SUBNET_PREFIX: ${SUBNET_PREFIX}
+    volumes:
+      - ./docker/edge/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "127.0.0.1:${HTTPS_PORT}:${HTTPS_PORT}"
+    networks:
+      cluster:
+        ipv4_address: ${SUBNET_PREFIX}.5
+
+  # ---------------------------------------------------------------------------
+  # Tools: the scripts run kubectl, helm, curl and openssl in here with
+  # "docker exec". The project folder is mounted at /work.
+  # ---------------------------------------------------------------------------
+  tools:
+    build:
+      context: ./docker/tools
+      args:
+        KUBECTL_VERSION: ${KUBECTL_VERSION}
+        HELM_VERSION: ${HELM_VERSION}
+    image: k8s-ha-demo-tools:local
+    container_name: k8s-ha-demo-tools
+    restart: unless-stopped
+    # A tiny init process, so the container stops at once when asked to.
+    init: true
+    # Run as you, so files written into the project folder belong to you.
+    user: "${HOST_UID}:${HOST_GID}"
+    working_dir: /work
+    environment:
+      # kubectl and helm talk to https://server:6443 with this file.
+      KUBECONFIG: /work/.state/kubeconfig-internal
+      # A home folder that every user id may write to (Helm keeps its cache there).
+      HOME: /tmp/home
+    volumes:
+      - .:/work
+    # Do nothing, forever; the scripts "docker exec" commands into it.
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      cluster:
+        ipv4_address: ${SUBNET_PREFIX}.8
+
+networks:
+  # One private network for all containers.
+  cluster:
+    name: k8s-ha-demo
+    ipam:
+      config:
+        - subnet: ${SUBNET_PREFIX}.0/24
+
+volumes:
+  # Explicit names, so the scripts can refer to them.
+  registry-data:
+    name: k8s-ha-demo-registry-data
+  hub-cache-data:
+    name: k8s-ha-demo-hub-cache-data
+  server-data:
+    name: k8s-ha-demo-server-data
+  server-node:
+    name: k8s-ha-demo-server-node
+  agent-1-data:
+    name: k8s-ha-demo-agent-1-data
+  agent-1-node:
+    name: k8s-ha-demo-agent-1-node
+  agent-2-data:
+    name: k8s-ha-demo-agent-2-data
+  agent-2-node:
+    name: k8s-ha-demo-agent-2-node
+  agent-3-data:
+    name: k8s-ha-demo-agent-3-data
+  agent-3-node:
+    name: k8s-ha-demo-agent-3-node
+  nfs-disk:
+    name: k8s-ha-demo-nfs-disk

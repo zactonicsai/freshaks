@@ -1,0 +1,19 @@
+# =============================================================================
+# docker/k3s/registries.yaml — tells every Kubernetes node where to find images.
+# Mounted into each node at /etc/rancher/k3s/registries.yaml (docker-compose.yml).
+# A node reads it only when it starts.
+# =============================================================================
+mirrors:
+  # The application image. Pods name it "registry:5000/demo-app:<version>".
+  # "registry" is the registry container from docker-compose.yml; it speaks
+  # plain http, which a node only accepts when it is told so here.
+  # (From your machine the same registry is "localhost:5001" - one registry,
+  # two addresses.)
+  "registry:5000":
+    endpoint:
+      - "http://registry:5000"
+  # Images from Docker Hub are fetched through the cache container. If the
+  # cache is down, the node falls back to Docker Hub itself.
+  docker.io:
+    endpoint:
+      - "http://hub-cache:5000"

@@ -1,0 +1,60 @@
+# Values for the chart "nfs-server-provisioner" (kubernetes-sigs): one pod that
+# runs an NFS server (NFS-Ganesha) and creates a folder + export for every
+# PersistentVolumeClaim that asks for StorageClass "nfs".
+# The scripts add "--set persistence.size=<NFS_DISK_SIZE>".
+
+# A single NFS server. It is the one deliberate single point of failure of the
+# storage layer (see the README).
+replicaCount: 1
+
+extraArgs:
+  # Seconds the server waits for clients to reclaim locks after a restart.
+  # The default of 90 would freeze every NFS volume that long after each restart.
+  grace-period: 10
+  # Do not derive file handles from the device number of the disk: the number
+  # can change when the pod moves to another node, which would give clients
+  # "stale file handle" errors.
+  device-based-fsids: false
+
+persistence:
+  # Keep the server's data on a volume instead of inside the pod.
+  enabled: true
+  # Binds to the PersistentVolume in k8s/storage/nfs-disk-pv.yaml: a Docker
+  # volume that every worker node has mounted at the same path.
+  storageClass: shared-disk
+  accessMode: ReadWriteOnce
+  size: 20Gi
+
+storageClass:
+  # Create the StorageClass that the claims of this project use.
+  create: true
+  name: nfs
+  # Not the cluster default: claims must ask for it by name.
+  defaultClass: false
+  allowVolumeExpansion: true
+  # Deleting a claim does not delete its data.
+  reclaimPolicy: Retain
+  mountOptions:
+    # NFS version 4.1: one TCP port, no helper services on the node. The small
+    # K3s node image can mount it without extra packages.
+    - vers=4.1
+    # "hard": when the server is away, programs wait instead of getting errors.
+    - hard
+    # Do not write an "accessed" time stamp on every read.
+    - noatime
+
+priorityClass:
+  # Let the NFS pod start before ordinary pods when a node is short of room.
+  create: true
+  name: nfs-storage-critical
+  value: 1000000
+
+resources:
+  requests:
+    # Guaranteed CPU share.
+    cpu: 50m
+    # Guaranteed memory.
+    memory: 128Mi
+  limits:
+    # Hard memory ceiling.
+    memory: 512Mi

@@ -1,0 +1,27 @@
+# The "disk" behind the NFS server pod.
+#
+# In a cloud this would be a network disk that can be attached to any node.
+# Here it is a Docker volume (k8s-ha-demo-nfs-disk) that docker-compose.yml
+# mounts into EVERY worker node at /mnt/nfs-disk. Because all nodes see the
+# same folder, the NFS pod can be restarted on any node and finds its data -
+# which is exactly what happens when its node is drained for an upgrade.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-disk
+spec:
+  capacity:
+    # Only a label here: a folder has no fixed size.
+    storage: __NFS_DISK_SIZE__
+  accessModes:
+    # One pod (the NFS server) uses it.
+    - ReadWriteOnce
+  # Never delete the folder when the claim goes away.
+  persistentVolumeReclaimPolicy: Retain
+  # The NFS chart asks for this class name (helm/values/nfs-server-provisioner.yaml).
+  storageClassName: shared-disk
+  hostPath:
+    # Folder inside each worker node container.
+    path: /mnt/nfs-disk
+    # Fail clearly if a node does not have the folder.
+    type: Directory

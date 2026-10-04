@@ -1,0 +1,21 @@
+# The one database address Keycloak knows: postgres.postgres.svc.cluster.local
+# The selector decides which PostgreSQL release receives the traffic. Changing
+# the "instance" label is the blue/green switch (and the rollback).
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: postgres
+  labels:
+    app.kubernetes.io/name: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: postgres
+    # Filled in by the scripts: postgres-v14 before the upgrade, postgres-v18 after.
+    app.kubernetes.io/instance: __POSTGRES_ACTIVE_RELEASE__
+  ports:
+    # The "tcp-" prefix tells Istio to treat this port as plain TCP.
+    - name: tcp-postgres
+      port: 5432
+      targetPort: tcp-postgres

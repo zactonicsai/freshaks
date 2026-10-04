@@ -1,0 +1,33 @@
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--http-enabled=true"
+  - "--http-port=8080"
+  - "--hostname-strict=false"
+  - "--proxy-headers=xforwarded"
+  - "--health-enabled=true"
+  - "--cache=local"
+
+http:
+  relativePath: "/"
+
+database:
+  vendor: postgres
+  hostname: postgres.db.svc.cluster.local
+  port: 5432
+  database: keycloak
+  username: admin
+  password: admin
+
+extraEnv: |
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    value: admin
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    value: admin
+
+podLabels:
+  app: keycloak
+  sidecar.istio.io/inject: "true"   # sidecar on this pod only
+
+podAnnotations:
+  proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'

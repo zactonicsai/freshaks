@@ -1,0 +1,48 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: keycloak-gateway
+  namespace: keycloak
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - keycloak-gateway
+  http:
+    - route:
+        - destination:
+            host: keycloak-keycloakx-http.keycloak.svc.cluster.local
+            port:
+              number: 80
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: keycloak-egress
+  namespace: keycloak
+spec:
+  workloadSelector:
+    labels:
+      app: keycloak
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY
+  egress:
+    - hosts:
+        - "db/postgres.db.svc.cluster.local"
+        - "istio-system/*"

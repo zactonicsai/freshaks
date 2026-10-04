@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "k8s-doctor"
+version = "0.1.0"
+description = "Safe, human-friendly Kubernetes and Helm troubleshooting utility"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "PyYAML>=6.0.2,<7",
+  "rich>=14.0,<15",
+]
+
+[project.scripts]
+k8s-doctor = "k8s_doctor.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["k8s_doctor*"]

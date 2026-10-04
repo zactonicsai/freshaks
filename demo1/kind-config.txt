@@ -8,3 +8,76 @@ kubectl config use-context kind-mycluster
 helm repo add istio https://istio-release.storage.googleapis.com/charts
 helm repo add codecentric https://codecentric.github.io/helm-charts
 helm repo update
+
+mkdir charts
+helm pull istio/base          --untar --untardir charts
+helm pull istio/istiod        --untar --untardir charts
+helm pull istio/gateway       --untar --untardir charts
+helm pull codecentric/keycloakx --untar --untardir charts
+
+kubectl create namespace istio-system
+helm install istio-base ./charts/base -n istio-system --wait
+helm install istiod ./charts/istiod -n istio-system --wait
+
+To learn more about the release, try:
+  $ helm status istiod -n istio-system
+  $ helm get all istiod -n istio-system
+
+Next steps:
+  * Deploy a Gateway: https://istio.io/latest/docs/setup/additional-setup/gateway/
+  * Try out our tasks to get started on common configurations:
+    * https://istio.io/latest/docs/tasks/traffic-management
+    * https://istio.io/latest/docs/tasks/security/
+    * https://istio.io/latest/docs/tasks/policy-enforcement/
+  * Review the list of actively supported releases, CVE publications and our hardening guide:
+    * https://istio.io/latest/docs/releases/supported-releases/
+    * https://istio.io/latest/news/security/
+    * https://istio.io/latest/docs/ops/best-practices/security/
+
+For further documentation see https://istio.io website
+
+
+kubectl create namespace istio-ingress
+helm install istio-ingressgateway ./charts/gateway -n istio-ingress -f gateway-values.yaml --wait
+
+"istio-ingressgateway" successfully installed!
+
+To learn more about the release, try:
+  $ helm status istio-ingressgateway -n istio-ingress
+  $ helm get all istio-ingressgateway -n istio-ingress
+
+Next steps:
+  * Deploy an HTTP Gateway: https://istio.io/latest/docs/tasks/traffic-management/ingress/ingress-control/
+  * Deploy an HTTPS Gateway: https://istio.io/latest/docs/tasks/traffic-management/ingress/secure-ingress/
+
+
+kubectl apply -f postgres.yaml
+kubectl rollout status deployment/postgres -n db
+
+kubectl create namespace keycloak
+helm install keycloak ./charts/keycloakx -n keycloak -f keycloak-values.yaml
+
+Keycloak was installed with a Service of type ClusterIP
+
+Create a port-forwarding with the following commands:
+
+export POD_NAME=$(kubectl get pods --namespace keycloak -l "app.kubernetes.io/name=keycloakx,app.kubernetes.io/instance=keycloak" -o name)
+echo "Visit http://127.0.0.1:8080 to use your application"
+kubectl --namespace keycloak port-forward "$POD_NAME" 8080
+
+
+kubectl apply -f keycloak-istio.yaml
+
+kubectl get pods -n db         # postgres   1/1  (no sidecar)
+kubectl get pods -n keycloak   # keycloak   2/2  (keycloak + istio-proxy)
+kubectl logs -n keycloak keycloak-keycloakx-0 -c keycloak | grep -i -E "postgres|started|admin"
+
+
+docker ps --filter name=mycluster-control-plane --format "{{.Ports}}"
+
+kubectl get svc -n istio-ingress
+
+helm upgrade istio-ingressgateway ./charts/gateway -n istio-ingress -f gateway-values.yaml
+
+ kubectl port-forward -n keycloak svc/keycloak-keycloakx-http 8081:80
+ 

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Local Manifest Review: examples/demo-deployment.yaml</title>
+<style>
+body{font-family:Arial,sans-serif;margin:2rem;color:#161616;background:#fff}h1{color:#0f3d75}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d0d7de;padding:.55rem;vertical-align:top;text-align:left}th{background:#eef4fb}pre{white-space:pre-wrap;margin:0}code{white-space:pre-wrap}.meta{color:#525252}
+</style></head><body>
+<h1>Local Manifest Review: examples/demo-deployment.yaml</h1>
+<p class="meta">Context: default &nbsp; Namespace: default/current</p>
+<table><thead><tr><th>Status</th><th>Check</th><th>Summary</th><th>Details</th><th>Recommendation</th><th>Command</th></tr></thead>
+<tbody><tr><td>PASS</td><td>parse</td><td>Parsed 2 Kubernetes YAML document(s)</td><td><pre></pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>document 1</td><td>Deployment/demo-web</td><td><pre>apiVersion: apps/v1</pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>image:web</td><td>Image has an explicit tag/digest: nginx:1.29.1</td><td><pre></pre></td><td></td><td><code></code></td></tr><tr><td>PASS</td><td>resources:web</td><td>Resource requests and limits are present</td><td><pre>requests:
+  cpu: 50m
+  memory: 32Mi
+limits:
+  cpu: 250m
+  memory: 128Mi</pre></td><td></td><td><code></code></td></tr><tr><td>INFO</td><td>security:web</td><td>runAsNonRoot is not explicitly true</td><td><pre></pre></td><td>Where the image supports it, run as a non-root user and set an appropriate securityContext.</td><td><code></code></td></tr><tr><td>INFO</td><td>document 2</td><td>Service/demo-web</td><td><pre>apiVersion: v1</pre></td><td></td><td><code></code></td></tr></tbody></table></body></html>

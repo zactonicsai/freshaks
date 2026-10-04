@@ -1,0 +1,93 @@
+# Default values of the keycloak chart. Version-specific settings (the "env"
+# and "secretEnv" maps and the probe port) are in:
+#   helm/values/keycloak-legacy-v24.yaml   (Keycloak 24 and older style)
+#   helm/values/keycloak-current-v26.yaml  (Keycloak 25+ style)
+
+image:
+  # Official Keycloak image.
+  repository: quay.io/keycloak/keycloak
+  # Keycloak version = image tag.
+  tag: "24.0.5"
+  # Do not re-download an image that is already on the node.
+  pullPolicy: IfNotPresent
+
+# Two pods so that one can be drained during node upgrades. 0 parks Keycloak.
+replicaCount: 2
+
+# RollingUpdate = replace pods one by one (same version, config changes, patches).
+# Recreate      = stop all pods, then start the new ones (major/minor upgrades:
+#                 Keycloak pods of different versions must not form one cluster).
+updateStrategy: RollingUpdate
+
+# Everything after the first label of the public host names, e.g. 20.1.2.3.nip.io
+baseDomain: example.test
+
+# Secret with the keys "admin-username", "admin-password" and "db-password".
+existingSecret: keycloak-credentials
+
+# Plain environment variables. Values may use Helm templates such as
+# {{ .Values.baseDomain }}; they are rendered with "tpl".
+env: {}
+
+# Environment variables read from existingSecret: VARIABLE_NAME: key-in-secret
+secretEnv: {}
+
+probes:
+  # Port that serves /health/ready and /health/live.
+  # Keycloak <= 24: 8080 (main port). Keycloak >= 25: 9000 (management port).
+  port: 8080
+
+resources:
+  requests:
+    # Guaranteed CPU share.
+    cpu: 500m
+    # Guaranteed memory.
+    memory: 1Gi
+  limits:
+    # Hard memory ceiling (the JVM heap is sized from it automatically).
+    memory: 2Gi
+
+podAnnotations:
+  # Keycloak pods talk to each other on these JGroups ports to share caches.
+  # They are kept out of the Istio sidecar because the pods must reach each
+  # other by pod IP before they are "ready", which strict mTLS would block.
+  traffic.sidecar.istio.io/excludeInboundPorts: "7800,57800"
+  traffic.sidecar.istio.io/excludeOutboundPorts: "7800,57800"
+
+# Seconds Keycloak gets to finish requests before it is killed.
+terminationGracePeriodSeconds: 60
+
+realm:
+  # Name of the realm that is imported on the very first start.
+  name: demo
+  clients:
+    # One OIDC client per application. The key is the client id and also the
+    # first label of the application's host name (app1.<baseDomain>).
+    app1:
+      # Display name on the Keycloak login page.
+      name: Portal
+      # Client secret. The scripts and Terraform inject a generated value.
+      secret: change-me
+    app2:
+      name: Reports
+      secret: change-me
+  # One password for all test users. The scripts and Terraform inject a generated value.
+  testUserPassword: change-me
+  users:
+    # alice may see the admin panel of both apps.
+    - username: alice
+      firstName: Alice
+      lastName: Anderson
+      email: alice@example.com
+      roles: ["user", "admin"]
+    # bob and carol are normal users.
+    - username: bob
+      firstName: Bob
+      lastName: Brown
+      email: bob@example.com
+      roles: ["user"]
+    - username: carol
+      firstName: Carol
+      lastName: Clark
+      email: carol@example.com
+      roles: ["user"]

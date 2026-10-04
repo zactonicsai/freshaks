@@ -1,0 +1,73 @@
+# How clients (here: the ingress gateway) talk to the pods behind a Service.
+
+# app1: sticky sessions + take broken pods out of rotation.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: app1
+  namespace: apps
+spec:
+  host: app1.apps.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      consistentHash:
+        # The gateway sets this cookie on the first answer and afterwards sends
+        # the same browser to the same pod. Needed because each pod keeps the
+        # login session in its own memory.
+        httpCookie:
+          name: app1-route
+          path: /
+          # 0s = session cookie (gone when the browser is closed).
+          ttl: 0s
+    outlierDetection:
+      # After 5 server errors in a row ...
+      consecutive5xxErrors: 5
+      # ... checked every 10 seconds ...
+      interval: 10s
+      # ... stop sending traffic to that pod for 30 seconds.
+      baseEjectionTime: 30s
+      # Never eject more than half of the pods.
+      maxEjectionPercent: 50
+---
+# app2: same settings with its own cookie.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: app2
+  namespace: apps
+spec:
+  host: app2.apps.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      consistentHash:
+        httpCookie:
+          name: app2-route
+          path: /
+          ttl: 0s
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+# Keycloak shares login sessions between its pods, so stickiness is only an
+# optimisation here (fewer cache look-ups on the other pod).
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  host: keycloak.keycloak.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      consistentHash:
+        httpCookie:
+          name: kc-route
+          path: /
+          ttl: 0s
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50

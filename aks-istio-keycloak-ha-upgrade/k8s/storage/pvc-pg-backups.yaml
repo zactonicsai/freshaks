@@ -1,0 +1,17 @@
+# Shared volume for database dumps. ReadWriteMany lets the old and the new
+# PostgreSQL pod mount it at the same time, which is how the dump travels from
+# one version to the other during the upgrade.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pg-backups
+  namespace: postgres
+spec:
+  accessModes:
+    # Many pods on many nodes may read and write.
+    - ReadWriteMany
+  # "nfs" (NFS pod) or "azurefile-csi-nfs" (Azure Files), set by the scripts.
+  storageClassName: __SHARED_STORAGE_CLASS__
+  resources:
+    requests:
+      storage: __BACKUP_VOLUME_SIZE__

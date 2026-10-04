@@ -1,0 +1,61 @@
+# Settings of the Reports application. Every value that differs between
+# environments comes from an environment variable (set by the Helm chart);
+# the part after the colon is the default for running on a developer machine.
+
+server:
+  port: 8080
+  # The app sits behind the Istio ingress gateway, which ends TLS. "native"
+  # makes Tomcat trust the X-Forwarded-* headers of the proxy, so the app
+  # knows that its public address is https://app2.<domain> (needed to build
+  # the OIDC redirect address and to mark cookies as "Secure").
+  forward-headers-strategy: native
+  # On shutdown finish the requests that are in flight before stopping.
+  # Together with the preStop sleep in the Helm chart this makes pod
+  # replacements invisible to users.
+  shutdown: graceful
+  servlet:
+    session:
+      # Sessions live in the memory of the pod (see the README, "sticky sessions").
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+
+spring:
+  application:
+    name: reports
+  lifecycle:
+    # How long a graceful shutdown may take.
+    timeout-per-shutdown-phase: 20s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Only the health endpoint is reachable over HTTP.
+        include: health
+  endpoint:
+    health:
+      probes:
+        # Adds /actuator/health/liveness and /actuator/health/readiness.
+        enabled: true
+
+app:
+  name: ${APP_NAME:Reports}
+  # Baked into the image at build time (Dockerfile: ARG APP_VERSION).
+  version: ${APP_VERSION:dev}
+  pod: ${POD_NAME:local}
+  shared-dir: ${SHARED_DIR:/tmp/shared}
+  other-app:
+    name: ${OTHER_APP_NAME:Portal}
+    url: ${OTHER_APP_URL:http://localhost:8080}
+  egress:
+    allowed-url: ${EGRESS_ALLOWED_URL:https://api.ipify.org/?format=json}
+    blocked-url: ${EGRESS_BLOCKED_URL:https://example.com/}
+  oidc:
+    client-id: ${OIDC_CLIENT_ID:app2}
+    client-secret: ${OIDC_CLIENT_SECRET:change-me}
+    # Address of the realm as the BROWSER sees it (and as written into tokens).
+    public-issuer: ${OIDC_PUBLIC_ISSUER:http://localhost:8180/realms/demo}
+    # Address of the realm as this POD reaches it inside the cluster.
+    internal-issuer: ${OIDC_INTERNAL_ISSUER:${OIDC_PUBLIC_ISSUER:http://localhost:8180/realms/demo}}

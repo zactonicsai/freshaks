@@ -1,0 +1,19 @@
+{{- if gt (int .Values.replicaCount) 1 }}
+# PodDisruptionBudget: during node drains at least one Keycloak pod must stay up.
+# It is only created for 2+ replicas: a budget on a single pod would block
+# every node drain and with it every AKS upgrade.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  minAvailable: 1
+  # Pods that are not healthy anyway may always be evicted, so a crashing pod
+  # can never block a node drain.
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" . | nindent 6 }}
+{{- end }}

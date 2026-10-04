@@ -1,0 +1,12 @@
+# Helm chart metadata. "apiVersion: v2" means the chart needs Helm 3 or newer.
+apiVersion: v2
+# Chart name (also used in labels).
+name: spring-app
+# What this chart is for.
+description: One Spring Boot web app that signs users in through Keycloak (OIDC). Install it twice (app1 and app2) to see single sign-on.
+# "application" charts create workloads.
+type: application
+# Version of the chart itself.
+version: 1.0.0
+# Informational only: the app version is chosen with image.tag.
+appVersion: "1.0.0"

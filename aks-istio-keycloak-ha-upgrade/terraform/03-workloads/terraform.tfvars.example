@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and adjust. These lines are the workload upgrades.
+
+# --- PostgreSQL 14 -> 18 (see the steps in variables.tf) ----------------------
+postgres_instances = {
+  postgres-v14 = { version = "14.12" }
+  # postgres-v18 = { version = "18.6" }
+}
+postgres_active_release = "postgres-v14"
+
+# --- Keycloak 24 -> 26 ----------------------------------------------------------
+keycloak_version         = "24.0.5"
+keycloak_replicas        = 2
+keycloak_update_strategy = "RollingUpdate"
+
+# --- Applications ---------------------------------------------------------------
+app_version = "1.0.0"

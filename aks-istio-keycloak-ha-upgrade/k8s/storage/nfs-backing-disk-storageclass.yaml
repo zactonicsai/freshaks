@@ -1,0 +1,18 @@
+# StorageClass for the single Azure managed disk behind the NFS server pod.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-backing-disk
+# Azure Disk CSI driver (built into AKS).
+provisioner: disk.csi.azure.com
+parameters:
+  # Premium_ZRS disks are copied to three zones and can be attached to a node
+  # in any zone, so the NFS pod can restart anywhere. Premium_LRS disks live in
+  # one zone only and pin the NFS pod to that zone.
+  skuName: __NFS_BACKING_DISK_SKU__
+# Keep the disk when the claim is deleted (the destroy script removes it on purpose).
+reclaimPolicy: Retain
+# Create the disk only when the NFS pod is scheduled.
+volumeBindingMode: WaitForFirstConsumer
+# Allow the disk to grow later.
+allowVolumeExpansion: true

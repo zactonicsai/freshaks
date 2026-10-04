@@ -1,0 +1,65 @@
+# Values for the "nfs-server-provisioner" chart (kubernetes-sigs).
+# It runs ONE pod with an NFS server (NFS-Ganesha) and creates a folder on its
+# disk for every PersistentVolumeClaim that asks for the StorageClass "nfs".
+
+# The NFS server cannot be scaled out: exactly one pod. This is the price of the
+# simple "NFS pod" design; see README "What is still a single point of failure".
+replicaCount: 1
+
+extraArgs:
+  # Seconds after a restart in which NFS clients may reclaim their open files.
+  # The default (90) freezes all writers for 90 seconds after every restart of
+  # the NFS pod; 10 keeps the pause short.
+  grace-period: 10
+  # Build file handles from the export, not from the disk device numbers. The
+  # device number can change when the disk is attached to another node, which
+  # would give every client "stale file handle" errors.
+  device-based-fsids: false
+
+persistence:
+  # Keep the exported data on a real disk instead of inside the pod.
+  enabled: true
+  # StorageClass of that disk (k8s/storage/nfs-backing-disk-storageclass.yaml).
+  storageClass: nfs-backing-disk
+  # A managed disk can be attached to one node at a time.
+  accessMode: ReadWriteOnce
+  # Size of the disk. The scripts override it with NFS_DISK_SIZE.
+  size: 64Gi
+
+storageClass:
+  # Create the StorageClass that the other workloads use.
+  create: true
+  # Its name.
+  name: nfs
+  # Do not make it the cluster default.
+  defaultClass: false
+  # Allow claims to grow later.
+  allowVolumeExpansion: true
+  # Keep the data folder when a claim is deleted (safer for databases).
+  reclaimPolicy: Retain
+  mountOptions:
+    # NFS 4.1 needs only port 2049 and has locking built in.
+    - vers=4.1
+    # Retry forever instead of returning I/O errors while the NFS pod restarts.
+    - hard
+    # Do not write an access time on every read.
+    - noatime
+
+priorityClass:
+  # Give the NFS pod a higher priority than the workloads that depend on it,
+  # so the scheduler never evicts it to make room for them.
+  create: true
+  # Name of the PriorityClass.
+  name: nfs-storage-critical
+  # Higher number = more important (ordinary pods have 0).
+  value: 1000000
+
+resources:
+  requests:
+    # Guaranteed CPU share.
+    cpu: 100m
+    # Guaranteed memory.
+    memory: 256Mi
+  limits:
+    # Hard memory ceiling.
+    memory: 1Gi

@@ -1,0 +1,19 @@
+# Created by the scripts: remembered facts, passwords, certificates, kubeconfig.
+.state/
+# Log files of every script run.
+logs/
+
+# Terraform / OpenTofu working files and state (the state contains secrets).
+**/.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+crash.log
+
+# Java build output.
+apps/*/target/
+
+# Editor and OS files.
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars and adjust. These two lines are the Istio upgrade.
+
+# Step 1 - install the new control plane next to the old one:
+#   istio_revisions      = ["1.28.1", "1.29.8"]
+#   istio_active_version = "1.28.1"
+# Step 2 - switch (then apply layer 3 to restart the workloads):
+#   istio_revisions      = ["1.28.1", "1.29.8"]
+#   istio_active_version = "1.29.8"
+# Step 3 - remove the old control plane:
+#   istio_revisions      = ["1.29.8"]
+#   istio_active_version = "1.29.8"
+# Repeat for 1.30.5 and 1.31.1. One minor version at a time.
+istio_revisions      = ["1.28.1"]
+istio_active_version = "1.28.1"

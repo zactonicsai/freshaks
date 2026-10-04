@@ -1,0 +1,12 @@
+# Helm chart metadata. "apiVersion: v2" means the chart needs Helm 3 or newer.
+apiVersion: v2
+# Chart name (also used in labels).
+name: postgres
+# What this chart is for.
+description: One PostgreSQL instance per Helm release. Install one release per major version to do blue/green major upgrades.
+# "application" charts create workloads (as opposed to "library" charts).
+type: application
+# Version of the chart itself.
+version: 1.0.0
+# Informational only: the PostgreSQL version is chosen with image.tag.
+appVersion: "14-18"

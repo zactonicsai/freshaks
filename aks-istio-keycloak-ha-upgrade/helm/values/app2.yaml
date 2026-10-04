@@ -1,0 +1,10 @@
+# Values for release "app2" of the spring-app chart.
+
+# Name shown in the page header.
+displayName: Reports
+
+otherApp:
+  # The page links to this application to demonstrate single sign-on.
+  name: Portal
+  # First label of its host name (app1.<baseDomain>).
+  host: app1

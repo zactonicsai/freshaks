@@ -1,0 +1,6 @@
+# Files that must not be sent to the Docker build.
+target/
+.git/
+.idea/
+*.iml
+*.md

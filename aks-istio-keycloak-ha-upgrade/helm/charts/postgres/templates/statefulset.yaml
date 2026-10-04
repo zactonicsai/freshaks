@@ -1,0 +1,141 @@
+# StatefulSet: gives the pod a fixed name (<release>-0) and its own data volume.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+spec:
+  # Name of the headless Service above.
+  serviceName: {{ .Release.Name }}
+  # 1 = running, 0 = parked.
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "postgres.selectorLabels" . | nindent 6 }}
+  # Keep the data volume when the release is scaled to 0 or uninstalled.
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  template:
+    metadata:
+      labels:
+        {{- include "postgres.labels" . | nindent 8 }}
+        # "app" and "version" are the labels Istio shows in its telemetry.
+        app: postgres
+        version: {{ printf "v%s" (include "postgres.major" .) | quote }}
+      annotations:
+        # Restart the pod when the init script changes.
+        checksum/init: {{ include (print $.Template.BasePath "/configmap-init.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        # Run as the "postgres" user of the official image, never as root.
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- range $name, $value := .Values.settings }}
+            - "-c"
+            - {{ printf "%s=%s" $name (toString $value) | quote }}
+            {{- end }}
+          ports:
+            - name: tcp-postgres
+              containerPort: 5432
+          env:
+            # A sub-folder of our own mount. This keeps the layout identical
+            # for every major version (the PostgreSQL 18 image changed its
+            # default data path, an explicit PGDATA is not affected by that).
+            - name: PGDATA
+              value: /pgdata/data
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: postgres-password
+            - name: KEYCLOAK_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: keycloak-db-password
+          # Startup probe: allow up to 5 minutes for first start or crash recovery.
+          startupProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "127.0.0.1", "-p", "5432"]
+            periodSeconds: 5
+            failureThreshold: 60
+          # Readiness probe: take the pod out of the Service while it cannot accept connections.
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "127.0.0.1", "-p", "5432"]
+            periodSeconds: 5
+            failureThreshold: 3
+          # Liveness probe: restart only when the server is gone for a full minute.
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "127.0.0.1", "-p", "5432"]
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            # Database files (NFS-backed volume by default).
+            - name: data
+              mountPath: /pgdata
+            # Shared backup volume, also mounted by the other PostgreSQL release.
+            - name: backups
+              mountPath: /backups
+            # First-start script.
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            # Writable folders needed because the root filesystem is read-only.
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+            # Shared memory for parallel queries.
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        - name: backups
+          persistentVolumeClaim:
+            claimName: {{ .Values.backups.existingClaim }}
+        - name: init
+          configMap:
+            name: {{ .Release.Name }}-init
+            # 0555 = readable and executable, so the image runs the script.
+            defaultMode: 0555
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}

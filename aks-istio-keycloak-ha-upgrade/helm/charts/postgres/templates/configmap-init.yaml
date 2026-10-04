@@ -1,0 +1,18 @@
+# Script that the official image runs once, when the data folder is still empty.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-init
+  labels:
+    {{- include "postgres.labels" . | nindent 4 }}
+data:
+  10-create-keycloak-db.sh: |
+    #!/bin/bash
+    # Stop on the first error.
+    set -euo pipefail
+    # Create a non-superuser role and a database owned by it for Keycloak.
+    # The password is handed to psql as a variable so it is quoted safely.
+    psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER:-postgres}" -v kcpass="${KEYCLOAK_DB_PASSWORD}" <<'SQL'
+    CREATE ROLE keycloak LOGIN PASSWORD :'kcpass';
+    CREATE DATABASE keycloak OWNER keycloak ENCODING 'UTF8';
+    SQL

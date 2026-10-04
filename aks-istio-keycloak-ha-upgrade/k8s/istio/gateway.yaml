@@ -1,0 +1,32 @@
+# What the ingress gateway listens on. One Gateway for all three host names.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: public-gateway
+  namespace: istio-ingress
+spec:
+  # Apply to the pods of the "istio-ingressgateway" Helm release.
+  selector:
+    istio: ingressgateway
+  servers:
+    # Port 80: answer every request with a redirect to HTTPS.
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*.__BASE_DOMAIN__"
+      tls:
+        httpsRedirect: true
+    # Port 443: end TLS here with the wildcard certificate.
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*.__BASE_DOMAIN__"
+      tls:
+        # SIMPLE = normal server-side TLS (the browser does not need a certificate).
+        mode: SIMPLE
+        # Secret "wildcard-tls" in the gateway namespace (install/14-create-tls-certificate.sh).
+        credentialName: wildcard-tls

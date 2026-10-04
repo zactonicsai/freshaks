@@ -1,0 +1,44 @@
+# Keycloak settings in the style of version 24 and older ("hostname v1").
+# Used by the install scripts. The upgrade switches to keycloak-current-v26.yaml.
+# Values may contain Helm templates; the chart renders them.
+
+env:
+  # Database type.
+  KC_DB: postgres
+  # JDBC address. "postgres" is the stable Service that points at the active PostgreSQL.
+  KC_DB_URL: jdbc:postgresql://postgres.postgres.svc.cluster.local:5432/keycloak
+  # Database user (the password comes from the Secret, see secretEnv).
+  KC_DB_USERNAME: keycloak
+  # Serve plain HTTP on 8080; TLS ends at the Istio ingress gateway and the
+  # mesh encrypts pod-to-pod traffic with mTLS.
+  KC_HTTP_ENABLED: "true"
+  # Expose /health/ready and /health/live.
+  KC_HEALTH_ENABLED: "true"
+  # Expose /metrics.
+  KC_METRICS_ENABLED: "true"
+  # OLD STYLE: "edge" = a proxy in front ends TLS and sets X-Forwarded-* headers.
+  KC_PROXY: edge
+  # OLD STYLE: full public URL of Keycloak.
+  KC_HOSTNAME_URL: "https://keycloak.{{ .Values.baseDomain }}"
+  # OLD STYLE: full public URL of the admin console.
+  KC_HOSTNAME_ADMIN_URL: "https://keycloak.{{ .Values.baseDomain }}"
+  # Let the applications call Keycloak on its internal address for token requests.
+  KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+  # Use the built-in distributed cache (Infinispan) ...
+  KC_CACHE: ispn
+  # ... and find the other Keycloak pods through DNS.
+  KC_CACHE_STACK: kubernetes
+  # DNS name that lists all Keycloak pods (the headless Service).
+  JAVA_OPTS_APPEND: "-Djgroups.dns.query={{ .Release.Name }}-headless.{{ .Release.Namespace }}.svc.cluster.local"
+
+secretEnv:
+  # OLD STYLE: name of the first admin user.
+  KEYCLOAK_ADMIN: admin-username
+  # OLD STYLE: password of the first admin user.
+  KEYCLOAK_ADMIN_PASSWORD: admin-password
+  # Database password.
+  KC_DB_PASSWORD: db-password
+
+probes:
+  # Keycloak 24 serves the health endpoints on the main port.
+  port: 8080

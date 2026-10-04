@@ -1,0 +1,76 @@
+# Default values of the spring-app chart. The release name (app1 or app2) is
+# used as: Deployment name, Service name, OIDC client id and first label of the
+# public host name (app1.<baseDomain>).
+
+image:
+  # Image in your Azure Container Registry, e.g. myacr.azurecr.io/app1
+  repository: example.azurecr.io/app1
+  # Image tag = application version.
+  tag: "1.0.0"
+  # Do not re-download an image that is already on the node.
+  pullPolicy: IfNotPresent
+
+# Two pods so that one can be drained during node upgrades.
+replicaCount: 2
+
+# Name shown in the page header and in /api/info.
+displayName: Portal
+
+# Everything after the first label of the public host names, e.g. 20.1.2.3.nip.io
+baseDomain: example.test
+
+oidc:
+  # Keycloak realm that holds the users and the two clients.
+  realm: demo
+  # In-cluster address of Keycloak. The pods use it for server-to-server calls
+  # (token exchange, signing keys), so those never leave the mesh.
+  internalBaseUrl: http://keycloak.keycloak.svc.cluster.local:8080
+  # Secret with the key "client-secret". Empty = "<release name>-oidc".
+  existingSecret: ""
+
+otherApp:
+  # The "other" application, linked from the page to demonstrate single sign-on.
+  name: Reports
+  # First label of its host name.
+  host: app2
+
+sharedVolume:
+  # ReadWriteMany claim mounted by all pods of both applications.
+  existingClaim: shared-notes
+  # Folder inside the container.
+  mountPath: /data/shared
+
+egress:
+  # External host that is allowed through the Istio egress gateway.
+  allowedHost: api.ipify.org
+  # Path requested on that host (ipify answers with the public IP as JSON).
+  allowedPath: "/?format=json"
+  # External host that is not allowed; used to show that the mesh blocks it.
+  blockedHost: example.com
+
+resources:
+  requests:
+    # Guaranteed CPU share.
+    cpu: 200m
+    # Guaranteed memory.
+    memory: 384Mi
+  limits:
+    # Hard memory ceiling (the JVM sizes its heap from it).
+    memory: 768Mi
+
+# A new pod must be ready for this many seconds before the rollout continues.
+minReadySeconds: 5
+
+# Seconds a pod waits before it starts to shut down, so the mesh can stop
+# sending it new requests first.
+preStopSleepSeconds: 10
+
+# Total seconds a pod gets to stop (preStop sleep + graceful shutdown).
+terminationGracePeriodSeconds: 45
+
+# Optional: any text. Changing it restarts the pods. The Terraform example sets
+# it to the Istio revision so that pods pick up a new sidecar after an upgrade.
+meshRevision: ""
+
+# Extra annotations for the pods (none by default).
+podAnnotations: {}

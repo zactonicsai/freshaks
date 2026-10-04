@@ -1,0 +1,36 @@
+# Service used by the Istio ingress gateway (browser traffic) and by the two
+# applications (token and key requests inside the cluster).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "keycloak.selectorLabels" . | nindent 4 }}
+  ports:
+    # The "http" name tells Istio to treat this port as HTTP.
+    - name: http
+      port: 8080
+      targetPort: http
+---
+# Headless Service used only for cluster discovery: Keycloak 24 looks up this
+# DNS name to find the other Keycloak pods (JGroups DNS_PING).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-headless
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  # List pods before they are ready, otherwise a starting pod cannot find its peers.
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "keycloak.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: tcp-jgroups
+      port: 7800
+      targetPort: tcp-jgroups

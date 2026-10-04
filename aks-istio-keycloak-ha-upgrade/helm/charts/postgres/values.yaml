@@ -1,0 +1,55 @@
+# Default values of the postgres chart. Scripts and Terraform override a few of
+# them (image.tag, persistence.*, replicaCount).
+
+image:
+  # Official PostgreSQL image. Point this at your own registry if you mirror it.
+  repository: docker.io/library/postgres
+  # Full version = image tag. The major number becomes part of labels.
+  tag: "14.12"
+  # Do not re-download an image that is already on the node.
+  pullPolicy: IfNotPresent
+
+# 1 = running, 0 = parked (pod stopped, data volume kept for rollback).
+replicaCount: 1
+
+# ServiceAccount shared by all PostgreSQL releases. It is created outside this
+# chart so that the Istio AuthorizationPolicy can name one stable identity.
+serviceAccountName: postgres
+
+# Secret with the keys "postgres-password" and "keycloak-db-password".
+existingSecret: postgres-credentials
+
+persistence:
+  # StorageClass of the data volume ("nfs" = the NFS server pod).
+  storageClass: nfs
+  # Size of the data volume.
+  size: 8Gi
+
+backups:
+  # Shared ReadWriteMany claim mounted at /backups by every PostgreSQL release.
+  existingClaim: pg-backups
+
+# Extra server settings, passed as "-c name=value".
+settings:
+  # Keycloak opens up to 100 connections per pod by default.
+  max_connections: "200"
+  # Memory for caching table data.
+  shared_buffers: 256MB
+  # Log every statement that takes longer than one second.
+  log_min_duration_statement: "1000"
+
+resources:
+  requests:
+    # Guaranteed CPU share.
+    cpu: 250m
+    # Guaranteed memory.
+    memory: 512Mi
+  limits:
+    # Hard memory ceiling.
+    memory: 1Gi
+
+# Seconds PostgreSQL gets to shut down cleanly before it is killed.
+terminationGracePeriodSeconds: 120
+
+# Extra annotations for the pod (none by default).
+podAnnotations: {}

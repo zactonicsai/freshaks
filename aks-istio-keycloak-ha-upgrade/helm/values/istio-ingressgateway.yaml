@@ -1,0 +1,53 @@
+# Values for the Istio "gateway" chart, release "istio-ingressgateway".
+# The scripts add "--set revision=<tag>" and a generated file with the Azure
+# annotations for the static public IP.
+
+autoscaling:
+  # Let Kubernetes add gateway pods under load.
+  enabled: true
+  # Never fewer than two pods, so one can be drained during node upgrades.
+  minReplicas: 2
+  # Never more than five pods.
+  maxReplicas: 5
+  # Add a pod when the average CPU use passes 80% of the request.
+  targetCPUUtilizationPercentage: 80
+
+resources:
+  requests:
+    # Guaranteed CPU share.
+    cpu: 100m
+    # Guaranteed memory.
+    memory: 128Mi
+  limits:
+    # CPU ceiling.
+    cpu: 2000m
+    # Hard memory ceiling.
+    memory: 1024Mi
+
+podDisruptionBudget:
+  # At least one gateway pod must stay up during node drains.
+  minAvailable: 1
+  # A pod that is not healthy anyway may always be evicted.
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+# Prefer to put the gateway pods into different zones and on different nodes.
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        istio: ingressgateway
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        istio: ingressgateway
+
+service:
+  # Ask Azure for a public load balancer in front of the gateway pods.
+  type: LoadBalancer
+
+# Seconds a gateway pod gets to finish open connections before it is killed.
+terminationGracePeriodSeconds: 60

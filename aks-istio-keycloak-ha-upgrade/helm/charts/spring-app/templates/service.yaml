@@ -1,0 +1,16 @@
+# Service that the Istio ingress gateway routes to.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "spring-app.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "spring-app.selectorLabels" . | nindent 4 }}
+  ports:
+    # The "http" name tells Istio to treat this port as HTTP.
+    - name: http
+      port: 8080
+      targetPort: http

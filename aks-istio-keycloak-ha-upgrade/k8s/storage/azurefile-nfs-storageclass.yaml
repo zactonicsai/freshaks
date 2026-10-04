@@ -1,0 +1,27 @@
+# Alternative to the NFS pod (STORAGE_BACKEND=azurefiles-nfs): Azure Files NFS
+# shares. Azure runs the NFS server, so there is no NFS pod to fail or upgrade.
+# Notes: premium shares are billed by provisioned size (minimum 100 GiB each).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: azurefile-csi-nfs
+# Azure Files CSI driver (built into AKS).
+provisioner: file.csi.azure.com
+parameters:
+  # Use NFS 4.1 instead of SMB.
+  protocol: nfs
+  # NFS shares need a premium storage account; ZRS keeps three copies in three zones.
+  skuName: Premium_ZRS
+mountOptions:
+  # Open four TCP connections per mount for more throughput.
+  - nconnect=4
+  # Use a new source port when reconnecting (recommended by Azure for NFS).
+  - noresvport
+  # Cache file attributes for 30 seconds.
+  - actimeo=30
+# Keep the share when the claim is deleted (the destroy script removes it on purpose).
+reclaimPolicy: Retain
+# Create the share as soon as the claim exists.
+volumeBindingMode: Immediate
+# Allow shares to grow later.
+allowVolumeExpansion: true

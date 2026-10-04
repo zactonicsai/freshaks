@@ -1,0 +1,5 @@
+# Settings for "shellcheck" (a linter for shell scripts).
+# Look for sourced files relative to the script that sources them.
+source-path=SCRIPTDIR
+# Follow "source" lines into the shared library files.
+external-sources=true

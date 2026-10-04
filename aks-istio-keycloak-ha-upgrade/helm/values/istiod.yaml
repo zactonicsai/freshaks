@@ -1,0 +1,62 @@
+# Values for the "istiod" chart (the Istio control plane). The same file is used
+# for every Istio version; the scripts add "--set revision=<version>".
+# The keys are the top-level keys that "helm show values istio/istiod" lists
+# under "_internal_defaults_do_not_set".
+
+# Run at least two istiod pods so that one can be drained during node upgrades.
+autoscaleEnabled: true
+# Never fewer than two pods.
+autoscaleMin: 2
+# Never more than five pods.
+autoscaleMax: 5
+
+resources:
+  requests:
+    # Guaranteed CPU share (the chart default of 500m is sized for big meshes).
+    cpu: 250m
+    # Guaranteed memory.
+    memory: 512Mi
+
+# Prefer to put the istiod pods into different zones.
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app: istiod
+
+pdb:
+  # At least one istiod pod must stay up during node drains.
+  minAvailable: 1
+  # A pod that is not healthy anyway may always be evicted.
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+meshConfig:
+  # Print one access-log line per request in every sidecar and gateway.
+  accessLogFile: /dev/stdout
+  outboundTrafficPolicy:
+    # Pods may only call hosts that the mesh knows (Services and ServiceEntries).
+    # Everything else is blocked, so all internet traffic must be declared and
+    # is sent through the egress gateway.
+    mode: REGISTRY_ONLY
+  defaultConfig:
+    # Start the application container only after the sidecar is ready, so the
+    # first outgoing call of the app does not fail.
+    holdApplicationUntilProxyStarts: true
+    proxyMetadata:
+      # On shutdown keep the sidecar alive until the app has closed its
+      # connections (matters when the sidecar is not a "native sidecar").
+      EXIT_ON_ZERO_ACTIVE_CONNECTIONS: "true"
+
+global:
+  proxy:
+    resources:
+      requests:
+        # Guaranteed CPU share of every sidecar.
+        cpu: 50m
+        # Guaranteed memory of every sidecar.
+        memory: 128Mi
+      limits:
+        # Hard memory ceiling of every sidecar.
+        memory: 512Mi

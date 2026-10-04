@@ -1,0 +1,49 @@
+# Values for the Istio "gateway" chart, release "istio-egressgateway".
+# All traffic that leaves the mesh for the internet passes through these pods.
+
+autoscaling:
+  # Let Kubernetes add gateway pods under load.
+  enabled: true
+  # Never fewer than two pods, so one can be drained during node upgrades.
+  minReplicas: 2
+  # Never more than four pods.
+  maxReplicas: 4
+  # Add a pod when the average CPU use passes 80% of the request.
+  targetCPUUtilizationPercentage: 80
+
+resources:
+  requests:
+    # Guaranteed CPU share.
+    cpu: 100m
+    # Guaranteed memory.
+    memory: 128Mi
+  limits:
+    # CPU ceiling.
+    cpu: 1000m
+    # Hard memory ceiling.
+    memory: 512Mi
+
+podDisruptionBudget:
+  # At least one gateway pod must stay up during node drains.
+  minAvailable: 1
+  # A pod that is not healthy anyway may always be evicted.
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+# Prefer to put the gateway pods into different zones and on different nodes.
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        istio: egressgateway
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        istio: egressgateway
+
+service:
+  # Only reachable from inside the cluster: no public IP for the egress gateway.
+  type: ClusterIP

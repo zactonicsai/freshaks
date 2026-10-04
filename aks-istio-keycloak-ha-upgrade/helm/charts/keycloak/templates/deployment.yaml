@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "keycloak.selectorLabels" . | nindent 6 }}
+  strategy:
+    {{- if eq .Values.updateStrategy "Recreate" }}
+    # Stop every old pod before the first new pod starts (version upgrades).
+    type: Recreate
+    {{- else }}
+    # Start one new pod, wait until it is ready, then stop one old pod.
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "keycloak.labels" . | nindent 8 }}
+        # "app" and "version" are the labels Istio shows in its telemetry.
+        app: keycloak
+        version: {{ .Values.image.tag | quote }}
+      annotations:
+        # Restart the pods when the realm file changes.
+        checksum/realm: {{ include (print $.Template.BasePath "/secret-realm.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      # Prefer to put the pods into different zones and on different nodes.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "keycloak.selectorLabels" . | nindent 14 }}
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "keycloak.selectorLabels" . | nindent 14 }}
+      containers:
+        - name: keycloak
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # "start" = production mode. "--import-realm" loads the realm file
+          # when the realm does not exist yet and skips it otherwise.
+          args: ["start", "--import-realm"]
+          env:
+            {{- range $name, $value := .Values.env }}
+            - name: {{ $name }}
+              value: {{ tpl (toString $value) $ | quote }}
+            {{- end }}
+            {{- range $name, $key := .Values.secretEnv }}
+            - name: {{ $name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.existingSecret }}
+                  key: {{ $key }}
+            {{- end }}
+          ports:
+            # Browser and API traffic.
+            - name: http
+              containerPort: 8080
+            # Health and metrics in Keycloak 25+ (unused by Keycloak 24).
+            - name: management
+              containerPort: 9000
+            # Cache replication between Keycloak pods.
+            - name: tcp-jgroups
+              containerPort: 7800
+          # Startup probe: the first start runs database migrations and can take minutes.
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.probes.port }}
+            periodSeconds: 5
+            failureThreshold: 120
+          # Readiness probe: only send traffic to pods that can reach the database.
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.probes.port }}
+            periodSeconds: 10
+            failureThreshold: 3
+          # Liveness probe: restart a pod that hangs.
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.probes.port }}
+            periodSeconds: 15
+            failureThreshold: 5
+          lifecycle:
+            # Wait 10 seconds before stopping, so the mesh stops sending new
+            # requests to this pod first (zero-downtime rolling updates).
+            preStop:
+              sleep:
+                seconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            # Keycloak imports every file in this folder at startup.
+            - name: realm
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+      volumes:
+        - name: realm
+          secret:
+            secretName: {{ .Release.Name }}-realm

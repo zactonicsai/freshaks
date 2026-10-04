@@ -1,0 +1,78 @@
+# Routing rules: which host name goes to which Service.
+
+# app1.<domain> -> Service app1 in namespace apps.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: app1
+  namespace: apps
+spec:
+  hosts:
+    - "app1.__BASE_DOMAIN__"
+  # Only for traffic that enters through the public gateway.
+  gateways:
+    - istio-ingress/public-gateway
+  http:
+    - route:
+        - destination:
+            host: app1.apps.svc.cluster.local
+            port:
+              number: 8080
+      # Try a request again on another pod when the first pod could not take it
+      # (connection refused, connection reset before the request was sent, or a
+      # 503 from a pod that is shutting down). This hides pod restarts during
+      # rolling updates. Requests that reached the application are not repeated.
+      retries:
+        attempts: 3
+        retryOn: connect-failure,refused-stream,reset-before-request,unavailable,cancelled,503
+---
+# app2.<domain> -> Service app2 in namespace apps.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: app2
+  namespace: apps
+spec:
+  hosts:
+    - "app2.__BASE_DOMAIN__"
+  gateways:
+    - istio-ingress/public-gateway
+  http:
+    - route:
+        - destination:
+            host: app2.apps.svc.cluster.local
+            port:
+              number: 8080
+      retries:
+        attempts: 3
+        retryOn: connect-failure,refused-stream,reset-before-request,unavailable,cancelled,503
+---
+# keycloak.<domain> -> Service keycloak in namespace keycloak.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  hosts:
+    - "keycloak.__BASE_DOMAIN__"
+  gateways:
+    - istio-ingress/public-gateway
+  http:
+    # Never expose health and metrics endpoints to the internet.
+    - match:
+        - uri:
+            prefix: /health
+        - uri:
+            prefix: /metrics
+      directResponse:
+        status: 404
+    # Everything else goes to Keycloak.
+    - route:
+        - destination:
+            host: keycloak.keycloak.svc.cluster.local
+            port:
+              number: 8080
+      retries:
+        attempts: 3
+        retryOn: connect-failure,refused-stream,reset-before-request,unavailable,cancelled,503

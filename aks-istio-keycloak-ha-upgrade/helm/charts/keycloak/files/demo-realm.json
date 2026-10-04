@@ -1,0 +1,80 @@
+{
+  "realm": {{ .Values.realm.name | toJson }},
+  "displayName": "Demo realm",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": true,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "realm": [
+      { "name": "user", "description": "Can use both applications" },
+      { "name": "admin", "description": "Can also open the admin panel of both applications" }
+    ]
+  },
+  "clients": [
+    {{- $first := true }}
+    {{- range $id, $client := .Values.realm.clients }}
+    {{- if not $first }},{{ end }}
+    {{- $first = false }}
+    {
+      "clientId": {{ $id | toJson }},
+      "name": {{ $client.name | toJson }},
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": {{ $client.secret | toJson }},
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": {{ printf "https://%s.%s" $id $.Values.baseDomain | toJson }},
+      "baseUrl": "/",
+      "redirectUris": [ {{ printf "https://%s.%s/login/oauth2/code/keycloak" $id $.Values.baseDomain | toJson }} ],
+      "webOrigins": [ {{ printf "https://%s.%s" $id $.Values.baseDomain | toJson }} ],
+      "attributes": {
+        "post.logout.redirect.uris": {{ printf "https://%s.%s/*" $id $.Values.baseDomain | toJson }}
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles as flat list",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+    {{- end }}
+  ],
+  "users": [
+    {{- range $index, $user := .Values.realm.users }}
+    {{- if $index }},{{ end }}
+    {
+      "username": {{ $user.username | toJson }},
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": {{ $user.firstName | toJson }},
+      "lastName": {{ $user.lastName | toJson }},
+      "email": {{ $user.email | toJson }},
+      "credentials": [
+        { "type": "password", "value": {{ $.Values.realm.testUserPassword | toJson }}, "temporary": false }
+      ],
+      "realmRoles": {{ $user.roles | toJson }}
+    }
+    {{- end }}
+  ]
+}

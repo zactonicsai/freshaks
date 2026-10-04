@@ -1,0 +1,55 @@
+# All namespaces of the example.
+# The label "istio.io/rev" asks Istio to add a sidecar to every pod in the
+# namespace. Its value (ISTIO_TAG, "stable" by default) is a revision TAG, an
+# alias: during an Istio upgrade the tag is moved to the new control plane and
+# the namespaces never change.
+
+# Istio control plane (istiod).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+---
+# Ingress gateway pods. Not labelled: the gateway chart marks its own pods for
+# injection, and nothing else should run here.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-ingress
+---
+# Egress gateway pods. Not labelled, same reason as above.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-egress
+---
+# NFS server pod. Deliberately OUTSIDE the mesh: NFS volumes are mounted by the
+# node (kubelet), not by a pod, so the traffic cannot carry a mesh certificate.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nfs-storage
+---
+# PostgreSQL (old and new version live side by side during the upgrade).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: postgres
+  labels:
+    istio.io/rev: __ISTIO_TAG__
+---
+# Keycloak.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+  labels:
+    istio.io/rev: __ISTIO_TAG__
+---
+# The two Spring Boot applications.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apps
+  labels:
+    istio.io/rev: __ISTIO_TAG__

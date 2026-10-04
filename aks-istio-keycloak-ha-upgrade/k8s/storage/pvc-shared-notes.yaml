@@ -1,0 +1,16 @@
+# Shared volume mounted by all four application pods (2 x app1, 2 x app2).
+# A note saved through one pod is instantly visible through every other pod.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shared-notes
+  namespace: apps
+spec:
+  accessModes:
+    # Many pods on many nodes may read and write.
+    - ReadWriteMany
+  # "nfs" (NFS pod) or "azurefile-csi-nfs" (Azure Files), set by the scripts.
+  storageClassName: __SHARED_STORAGE_CLASS__
+  resources:
+    requests:
+      storage: __SHARED_NOTES_SIZE__

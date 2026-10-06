@@ -1,0 +1,32 @@
+{
+  "apiVersion": "security.istio.io/v1",
+  "kind": "AuthorizationPolicy",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "fipsdemo-only-from-gateway",
+    "namespace": "fipsdemo"
+  },
+  "spec": {
+    "action": "ALLOW",
+    "rules": [
+      {
+        "from": [
+          {
+            "source": {
+              "principals": [
+                "cluster.local/ns/istio-ingress/sa/istio-ingressgateway"
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "selector": {
+      "matchLabels": {
+        "app": "fipsdemo"
+      }
+    }
+  }
+}

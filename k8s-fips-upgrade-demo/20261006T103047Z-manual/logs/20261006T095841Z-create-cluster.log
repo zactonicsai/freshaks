@@ -1,0 +1,40 @@
+2026-10-06T09:58:41Z [INFO ] create-cluster started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T095841Z-create-cluster.log
+
+2026-10-06T09:58:41Z [STEP ] ===== Create kind cluster 'fipsdemo' (Kubernetes from kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed) =====
+Creating cluster "fipsdemo" ...
+ • Ensuring node image (kindest/node:v1.36.4) 🖼️  ...
+ ✓ Ensuring node image (kindest/node:v1.36.4) 🖼️
+ • Preparing nodes 📦 📦 📦   ...
+ ✓ Preparing nodes 📦 📦 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+ • Joining worker nodes 🚜  ...
+ ✓ Joining worker nodes 🚜
+ • Waiting ≤ 3m0s for control-plane = Ready ⏳  ...
+ ✓ Waiting ≤ 3m0s for control-plane = Ready ⏳
+ • Ready after 9s 💚
+Set kubectl context to "kind-fipsdemo"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-fipsdemo
+
+Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
+node/fipsdemo-control-plane condition met
+node/fipsdemo-worker condition met
+node/fipsdemo-worker2 condition met
+
+2026-10-06T09:59:30Z [STEP ] ===== Write down, per node, whether its kernel is in FIPS mode =====
+2026-10-06T09:59:31Z [INFO ] node fipsdemo-control-plane: kernel FIPS mode = false
+2026-10-06T09:59:31Z [INFO ] node fipsdemo-worker: kernel FIPS mode = false
+2026-10-06T09:59:31Z [INFO ] node fipsdemo-worker2: kernel FIPS mode = false
+NAME                     STATUS   ROLES           AGE   VERSION   NODEPOOL   KERNEL-FIPS
+fipsdemo-control-plane   Ready    control-plane   23s   v1.36.4              false
+fipsdemo-worker          Ready    <none>          13s   v1.36.4   blue       false
+fipsdemo-worker2         Ready    <none>          13s   v1.36.4   green      false
+2026-10-06T09:59:31Z [ OK  ] create-cluster finished

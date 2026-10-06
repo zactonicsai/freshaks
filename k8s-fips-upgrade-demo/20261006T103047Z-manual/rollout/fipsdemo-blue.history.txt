@@ -1,0 +1,4 @@
+deployment.apps/fipsdemo-blue 
+REVISION  CHANGE-CAUSE
+1         v1 non-FIPS first deploy
+

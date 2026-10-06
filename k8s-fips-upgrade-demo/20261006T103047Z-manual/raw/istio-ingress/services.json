@@ -1,0 +1,55 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "annotations": {
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Service\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/part-of\":\"fipsdemo\"},\"name\":\"istio-ingressgateway\",\"namespace\":\"istio-ingress\"},\"spec\":{\"ports\":[{\"name\":\"https\",\"nodePort\":30443,\"port\":443,\"targetPort\":443}],\"selector\":{\"istio\":\"ingressgateway\"},\"type\":\"NodePort\"}}\n"
+                },
+                "creationTimestamp": "2026-10-06T10:05:55Z",
+                "labels": {
+                    "app.kubernetes.io/part-of": "fipsdemo"
+                },
+                "name": "istio-ingressgateway",
+                "namespace": "istio-ingress",
+                "resourceVersion": "1389",
+                "uid": "9bbcd2e6-a3dd-4e0f-a27d-6cbb2e7105a0"
+            },
+            "spec": {
+                "clusterIP": "10.96.53.0",
+                "clusterIPs": [
+                    "10.96.53.0"
+                ],
+                "externalTrafficPolicy": "Cluster",
+                "internalTrafficPolicy": "Cluster",
+                "ipFamilies": [
+                    "IPv4"
+                ],
+                "ipFamilyPolicy": "SingleStack",
+                "ports": [
+                    {
+                        "name": "https",
+                        "nodePort": 30443,
+                        "port": 443,
+                        "protocol": "TCP",
+                        "targetPort": 443
+                    }
+                ],
+                "selector": {
+                    "istio": "ingressgateway"
+                },
+                "sessionAffinity": "None",
+                "type": "NodePort"
+            },
+            "status": {
+                "loadBalancer": {}
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "apiVersion": "security.istio.io/v1",
+  "kind": "PeerAuthentication",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "default",
+    "namespace": "fipsdemo"
+  },
+  "spec": {
+    "mtls": {
+      "mode": "STRICT"
+    }
+  }
+}

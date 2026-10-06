@@ -1,0 +1,5 @@
+2026-10-06T10:29:52Z [INFO ] expose-localhost started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T102952Z-expose-localhost.log
+2026-10-06T10:29:52Z [ OK  ] open  http://localhost:8080   (side: blue, no gateway, no mesh)   Ctrl+C stops
+Forwarding from 127.0.0.1:8080 -> 8080
+2026-10-06T10:30:40Z [INFO ] stopped
+2026-10-06T10:30:40Z [ OK  ] expose-localhost finished

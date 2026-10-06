@@ -1,0 +1,56 @@
+[
+  {
+    "name": "fipsdemo-control-plane",
+    "labels": {
+      "beta.kubernetes.io/arch": "arm64",
+      "beta.kubernetes.io/os": "linux",
+      "fipsdemo.test/kernel-fips": "false",
+      "kubernetes.io/arch": "arm64",
+      "kubernetes.io/hostname": "fipsdemo-control-plane",
+      "kubernetes.io/os": "linux",
+      "node-role.kubernetes.io/control-plane": "",
+      "node.kubernetes.io/exclude-from-external-load-balancers": ""
+    },
+    "unschedulable": false,
+    "taints": [
+      {
+        "effect": "NoSchedule",
+        "key": "node-role.kubernetes.io/control-plane"
+      }
+    ],
+    "kernel": "6.12.76-linuxkit",
+    "os": "Debian GNU/Linux 13 (trixie)"
+  },
+  {
+    "name": "fipsdemo-worker",
+    "labels": {
+      "beta.kubernetes.io/arch": "arm64",
+      "beta.kubernetes.io/os": "linux",
+      "fipsdemo.test/kernel-fips": "false",
+      "kubernetes.io/arch": "arm64",
+      "kubernetes.io/hostname": "fipsdemo-worker",
+      "kubernetes.io/os": "linux",
+      "nodepool": "blue"
+    },
+    "unschedulable": false,
+    "taints": [],
+    "kernel": "6.12.76-linuxkit",
+    "os": "Debian GNU/Linux 13 (trixie)"
+  },
+  {
+    "name": "fipsdemo-worker2",
+    "labels": {
+      "beta.kubernetes.io/arch": "arm64",
+      "beta.kubernetes.io/os": "linux",
+      "fipsdemo.test/kernel-fips": "false",
+      "kubernetes.io/arch": "arm64",
+      "kubernetes.io/hostname": "fipsdemo-worker2",
+      "kubernetes.io/os": "linux",
+      "nodepool": "green"
+    },
+    "unschedulable": false,
+    "taints": [],
+    "kernel": "6.12.76-linuxkit",
+    "os": "Debian GNU/Linux 13 (trixie)"
+  }
+]

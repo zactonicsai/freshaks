@@ -1,0 +1,80 @@
+2026-10-06T10:08:23Z [INFO ] deploy-nonfips started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T100823Z-deploy-nonfips.log
+
+2026-10-06T10:08:23Z [STEP ] ===== Namespace, service, mesh security and the locked way out to FreeIPA (172.18.0.8) =====
+namespace/fipsdemo created
+serviceaccount/fipsdemo created
+service/fipsdemo created
+peerauthentication.security.istio.io/default created
+authorizationpolicy.security.istio.io/fipsdemo-only-from-gateway created
+sidecar.networking.istio.io/default created
+serviceentry.networking.istio.io/freeipa created
+
+2026-10-06T10:08:24Z [STEP ] ===== Secrets and settings for the blue (non-FIPS) pods =====
+2026-10-06T10:08:24Z [ OK  ] secret fipsdemo/fipsdemo-keytab-v1 is in place
+2026-10-06T10:08:24Z [ OK  ] secret fipsdemo/fipsdemo-session-v1 is in place
+2026-10-06T10:08:24Z [ OK  ] configmap fipsdemo/fipsdemo-krb5-legacy is in place
+2026-10-06T10:08:24Z [ OK  ] secret istio-ingress/fipsdemo-tls-v1 is in place
+
+2026-10-06T10:08:24Z [STEP ] ===== Start the blue pods (fipsdemo-app:1.0-nonfips) =====
+deployment.apps/fipsdemo-blue created
+Waiting for deployment "fipsdemo-blue" rollout to finish: 0 out of 2 new replicas have been updated...
+Waiting for deployment "fipsdemo-blue" rollout to finish: 0 of 2 updated replicas are available...
+Waiting for deployment "fipsdemo-blue" rollout to finish: 1 of 2 updated replicas are available...
+deployment "fipsdemo-blue" successfully rolled out
+
+2026-10-06T10:08:30Z [STEP ] ===== Open the front door: all visitors -> blue =====
+gateway.networking.istio.io/fipsdemo-gateway created
+destinationrule.networking.istio.io/fipsdemo created
+virtualservice.networking.istio.io/fipsdemo created
+2026-10-06T10:08:31Z [ OK  ] visitors now go to: blue    gateway certificate: fipsdemo-tls-v1
+NAME                             READY   STATUS    RESTARTS   AGE   IP           NODE              NOMINATED NODE   READINESS GATES
+fipsdemo-blue-86c44c8fbf-d8sdx   2/2     Running   0          7s    10.244.1.3   fipsdemo-worker   <none>           <none>
+fipsdemo-blue-86c44c8fbf-qr7n6   2/2     Running   0          6s    10.244.1.4   fipsdemo-worker   <none>           <none>
+
+2026-10-06T10:08:31Z [STEP ] ===== Test =====
+2026-10-06T10:08:36Z [INFO ] test started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T100823Z-deploy-nonfips.log
+
+2026-10-06T10:08:36Z [STEP ] ===== Testing side 'blue' (live side: 'blue'), expecting nonfips, mode gateway =====
+
+2026-10-06T10:08:36Z [STEP ] ===== 1. Pages =====
+2026-10-06T10:08:36Z [PASS ] public page opens without login
+2026-10-06T10:08:36Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-06T10:08:40Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-06T10:08:41Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-06T10:08:41Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-06T10:08:41Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+
+2026-10-06T10:08:41Z [STEP ] ===== 2. Crypto facts reported by the app (/status) =====
+2026-10-06T10:08:41Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolicy":"DEFAULT","os":"Red Hat Enterprise Linux 9.8 (Plow)","java":"25.0.4.1","javaVendor":"Red Hat, Inc.","securityProviders":["SUN","SunRsaSign","SunEC","SunJSSE","SunJCE","SunJGSS","SunSASL","XMLDSig","SunPCSC","JdkLDAP","JdkSASL","SunPKCS11"],"pod":"fipsdemo-blue-86c44c8fbf-d8sdx","node":"fipsdemo-worker","kerberosRealm":"FIPSDEMO.TEST","kerberosValidateTgt":true,"keytabEnctypes":["aes128-cts-hmac-sha1-96","aes256-cts-hmac-sha1-96","aes128-cts-hmac-sha256-128","aes256-cts-hmac-sha384-192"]}
+2026-10-06T10:08:41Z [PASS ] app crypto profile is 'legacy'
+2026-10-06T10:08:41Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-06T10:08:41Z [PASS ] start-up crypto self-test passed
+2026-10-06T10:08:41Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+
+2026-10-06T10:08:41Z [STEP ] ===== 3. Kubernetes facts =====
+2026-10-06T10:08:42Z [PASS ] deployment fipsdemo-blue has 2 ready pod(s)
+2026-10-06T10:08:42Z [PASS ] all blue pods run on nodes labelled nodepool=blue
+2026-10-06T10:08:42Z [PASS ] app pods have an Istio sidecar proxy
+2026-10-06T10:08:42Z [PASS ] mesh mutual TLS is STRICT in namespace fipsdemo
+
+2026-10-06T10:08:42Z [STEP ] ===== 4. TLS at the front door (certificate from FreeIPA's CA) =====
+2026-10-06T10:08:42Z [PASS ] TLS 1.2 works and the certificate chains to FreeIPA's CA
+2026-10-06T10:08:42Z [PASS ] certificate is signed with a SHA-2 hash
+2026-10-06T10:08:42Z [PASS ] certificate key is RSA 2048 bits (wanted 2048 or more)
+2026-10-06T10:08:42Z [PASS ] old TLS 1.1 is refused
+2026-10-06T10:08:42Z [INFO ] note: before the FIPS upgrade the gateway still accepts X25519 (fine for non-FIPS)
+
+2026-10-06T10:08:42Z [STEP ] ===== 5. Mutual TLS: the certificate page =====
+2026-10-06T10:08:42Z [PASS ] certificate page without a client certificate is refused (HTTP 403)
+2026-10-06T10:08:42Z [PASS ] certificate page opens with the FreeIPA client certificate (CN=tester.fipsdemo.test)
+2026-10-06T10:08:42Z [PASS ] a home-made client certificate (not from FreeIPA) is refused (HTTP 000)
+
+2026-10-06T10:08:42Z [STEP ] ===== 6. The way out of the pod (Istio REGISTRY_ONLY) =====
+2026-10-06T10:08:46Z [PASS ] pod can reach FreeIPA Kerberos (ipa.fipsdemo.test:88)
+2026-10-06T10:08:46Z [PASS ] pod can not use ipa.fipsdemo.test:389 (only port 88 is allowed out)
+
+2026-10-06T10:08:46Z [STEP ] ===== RESULT for side 'blue' (nonfips): 23 passed, 0 failed, 0 warnings =====
+2026-10-06T10:08:46Z [ OK  ] test finished
+2026-10-06T10:08:46Z [INFO ] Open in a browser:  https://app.fipsdemo.test:8443   (first add '127.0.0.1 app.fipsdemo.test' to your hosts file and trust work/ipa/ca.crt)
+2026-10-06T10:08:46Z [INFO ] Login: alice / the DEMO_USER_PASSWORD from config.env
+2026-10-06T10:08:46Z [ OK  ] deploy-nonfips finished

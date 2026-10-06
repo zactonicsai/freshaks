@@ -1,0 +1,9 @@
+2026-10-06T10:27:23Z [INFO ] expose-localhost started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T102723Z-expose-localhost.log
+2026-10-06T10:27:23Z [ OK  ] open  https://app.fipsdemo.test:9443   (needs '127.0.0.1 app.fipsdemo.test' in your hosts file)   Ctrl+C stops
+2026-10-06T10:27:23Z [INFO ] test: curl --cacert work/ipa/ca.crt --resolve app.fipsdemo.test:9443:127.0.0.1 https://app.fipsdemo.test:9443/
+Forwarding from 127.0.0.1:9443 -> 443
+Handling connection for 9443
+E1006 05:27:58.129741   11439 portforward.go:549] "An error occurred forwarding" err="error forwarding port 443 to pod 332f948996256dd576c05317faca35e6eb75096644083db4a6b40a7f84cffbec, uid : failed to execute portforward in network namespace \"/var/run/netns/cni-118e4edf-2624-e45e-5cf9-b7144dd5a105\": writeto tcp4 127.0.0.1:46986->127.0.0.1:443: read tcp4 127.0.0.1:46986->127.0.0.1:443: read: connection reset by peer" localPort=9443 remotePort=443
+error: lost connection to pod
+2026-10-06T10:27:58Z [ERROR] command failed at line 66 of expose-localhost: kubectl --context "$KUBE_CONTEXT" "$@"
+2026-10-06T10:27:58Z [ERROR] expose-localhost FAILED (exit 1). Read the log: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T102723Z-expose-localhost.log

@@ -1,0 +1,41 @@
+== 1. Shell syntax
+  PASS  bash -n lib/common.sh
+  PASS  bash -n lib/deploy.sh
+  PASS  bash -n lib/platform.sh
+  PASS  bash -n scripts/00-check-tools.sh
+  PASS  bash -n scripts/01-create-cluster.sh
+  PASS  bash -n scripts/02-start-ipa.sh
+  PASS  bash -n scripts/03-install-istio.sh
+  PASS  bash -n scripts/04-build-images.sh
+  PASS  bash -n scripts/05-deploy-nonfips.sh
+  PASS  bash -n scripts/06-test.sh
+  PASS  bash -n scripts/10-save-state.sh
+  PASS  bash -n scripts/20-upgrade-to-fips.sh
+  PASS  bash -n scripts/30-rollback.sh
+  PASS  bash -n scripts/31-switch-live.sh
+  PASS  bash -n scripts/40-restore-state.sh
+  PASS  bash -n scripts/50-finalize-fips.sh
+  PASS  bash -n scripts/60-collect-logs.sh
+  PASS  bash -n scripts/90-destroy.sh
+  PASS  bash -n scripts/helpers/filter-keytab-sha2.sh
+  PASS  bash -n tests/app-kerberos-test.sh
+  PASS  bash -n tests/offline-tests.sh
+  PASS  bash -n tests/sandbox/hooks.sh
+  PASS  bash -n tests/sandbox/run-e2e.sh
+  PASS  bash -n tests/sandbox/setup-sandbox.sh
+== 2. shellcheck
+  PASS  shellcheck: no errors in 24 files
+        (style notes at warning level: 9)
+== 3. Java compiles without warnings
+  PASS  javac -Xlint:all -Werror
+== 4. Templates render with no placeholder left over
+  PASS  all templates render
+  PASS  rendered files are well-formed YAML
+== 5. Istio's own checks (offline)
+  PASS  istioctl validate
+  PASS  istioctl analyze --use-kube=false
+  PASS  install settings + FIPS switch put COMPLIANCE_POLICY=fips-140-3 on istiod
+== 6. The app against a throw-away Kerberos server
+  PASS  app-kerberos-test.sh: RESULT: 40 passed, 0 failed
+
+OFFLINE RESULT: 32 passed, 0 failed, 0 skipped

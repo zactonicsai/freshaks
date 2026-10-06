@@ -1,0 +1,7 @@
+2026-10-06T10:29:19Z [INFO ] expose-localhost started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T102919Z-expose-localhost.log
+2026-10-06T10:29:19Z [ OK  ] open  https://app.fipsdemo.test:8443   (needs '127.0.0.1 app.fipsdemo.test' in your hosts file)   Ctrl+C stops
+2026-10-06T10:29:19Z [INFO ] test: curl --cacert work/ipa/ca.crt --resolve app.fipsdemo.test:8443:127.0.0.1 https://app.fipsdemo.test:8443/
+Unable to listen on port 8443: Listeners failed to create with the following errors: [unable to create listener: Error listen tcp4 127.0.0.1:8443: bind: address already in use]
+error: unable to listen on any of the requested ports: [{8443 443}]
+2026-10-06T10:29:19Z [ERROR] command failed at line 66 of expose-localhost: kubectl --context "$KUBE_CONTEXT" "$@"
+2026-10-06T10:29:19Z [ERROR] expose-localhost FAILED (exit 1). Read the log: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T102919Z-expose-localhost.log

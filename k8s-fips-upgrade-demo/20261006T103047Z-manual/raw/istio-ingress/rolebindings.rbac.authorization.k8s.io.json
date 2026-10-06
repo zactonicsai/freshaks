@@ -1,0 +1,38 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "RoleBinding",
+            "metadata": {
+                "annotations": {
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"rbac.authorization.k8s.io/v1\",\"kind\":\"RoleBinding\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/part-of\":\"fipsdemo\"},\"name\":\"istio-ingressgateway-sds\",\"namespace\":\"istio-ingress\"},\"roleRef\":{\"apiGroup\":\"rbac.authorization.k8s.io\",\"kind\":\"Role\",\"name\":\"istio-ingressgateway-sds\"},\"subjects\":[{\"kind\":\"ServiceAccount\",\"name\":\"istio-ingressgateway\",\"namespace\":\"istio-ingress\"}]}\n"
+                },
+                "creationTimestamp": "2026-10-06T10:05:55Z",
+                "labels": {
+                    "app.kubernetes.io/part-of": "fipsdemo"
+                },
+                "name": "istio-ingressgateway-sds",
+                "namespace": "istio-ingress",
+                "resourceVersion": "1397",
+                "uid": "e63a6205-9af9-4c21-bcb0-42f8ed956635"
+            },
+            "roleRef": {
+                "apiGroup": "rbac.authorization.k8s.io",
+                "kind": "Role",
+                "name": "istio-ingressgateway-sds"
+            },
+            "subjects": [
+                {
+                    "kind": "ServiceAccount",
+                    "name": "istio-ingressgateway",
+                    "namespace": "istio-ingress"
+                }
+            ]
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

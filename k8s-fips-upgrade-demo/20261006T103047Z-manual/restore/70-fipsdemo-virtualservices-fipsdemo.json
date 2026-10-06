@@ -1,0 +1,84 @@
+{
+  "apiVersion": "networking.istio.io/v1",
+  "kind": "VirtualService",
+  "metadata": {
+    "annotations": {
+      "fipsdemo/live-track": "blue"
+    },
+    "labels": {
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "fipsdemo",
+    "namespace": "fipsdemo"
+  },
+  "spec": {
+    "gateways": [
+      "istio-ingress/fipsdemo-gateway"
+    ],
+    "hosts": [
+      "app.fipsdemo.test"
+    ],
+    "http": [
+      {
+        "match": [
+          {
+            "headers": {
+              "x-fipsdemo-track": {
+                "exact": "green"
+              }
+            }
+          }
+        ],
+        "name": "preview-green",
+        "route": [
+          {
+            "destination": {
+              "host": "fipsdemo.fipsdemo.svc.cluster.local",
+              "port": {
+                "number": 80
+              },
+              "subset": "green"
+            }
+          }
+        ]
+      },
+      {
+        "match": [
+          {
+            "headers": {
+              "x-fipsdemo-track": {
+                "exact": "blue"
+              }
+            }
+          }
+        ],
+        "name": "preview-blue",
+        "route": [
+          {
+            "destination": {
+              "host": "fipsdemo.fipsdemo.svc.cluster.local",
+              "port": {
+                "number": 80
+              },
+              "subset": "blue"
+            }
+          }
+        ]
+      },
+      {
+        "name": "live",
+        "route": [
+          {
+            "destination": {
+              "host": "fipsdemo.fipsdemo.svc.cluster.local",
+              "port": {
+                "number": 80
+              },
+              "subset": "blue"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

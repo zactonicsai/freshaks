@@ -1,0 +1,36 @@
+{
+  "apiVersion": "networking.istio.io/v1",
+  "kind": "ServiceEntry",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "freeipa",
+    "namespace": "fipsdemo"
+  },
+  "spec": {
+    "addresses": [
+      "172.18.0.8/32"
+    ],
+    "endpoints": [
+      {
+        "address": "172.18.0.8"
+      }
+    ],
+    "exportTo": [
+      "."
+    ],
+    "hosts": [
+      "ipa.fipsdemo.test"
+    ],
+    "location": "MESH_EXTERNAL",
+    "ports": [
+      {
+        "name": "tcp-kerberos",
+        "number": 88,
+        "protocol": "TCP"
+      }
+    ],
+    "resolution": "STATIC"
+  }
+}

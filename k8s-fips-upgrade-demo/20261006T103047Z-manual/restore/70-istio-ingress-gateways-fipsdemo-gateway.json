@@ -1,0 +1,33 @@
+{
+  "apiVersion": "networking.istio.io/v1",
+  "kind": "Gateway",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "fipsdemo-gateway",
+    "namespace": "istio-ingress"
+  },
+  "spec": {
+    "selector": {
+      "istio": "ingressgateway"
+    },
+    "servers": [
+      {
+        "hosts": [
+          "app.fipsdemo.test"
+        ],
+        "port": {
+          "name": "https",
+          "number": 443,
+          "protocol": "HTTPS"
+        },
+        "tls": {
+          "credentialName": "fipsdemo-tls-v1",
+          "minProtocolVersion": "TLSV1_2",
+          "mode": "OPTIONAL_MUTUAL"
+        }
+      }
+    ]
+  }
+}

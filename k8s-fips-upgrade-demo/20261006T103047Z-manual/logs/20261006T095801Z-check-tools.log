@@ -1,0 +1,29 @@
+2026-10-06T09:58:01Z [INFO ] check-tools started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T095801Z-check-tools.log
+
+2026-10-06T09:58:01Z [STEP ] ===== Programs =====
+2026-10-06T09:58:01Z [ OK  ] found docker
+2026-10-06T09:58:01Z [ OK  ] found kind
+2026-10-06T09:58:01Z [ OK  ] found kubectl
+2026-10-06T09:58:01Z [ OK  ] found istioctl
+2026-10-06T09:58:01Z [ OK  ] found openssl
+2026-10-06T09:58:01Z [ OK  ] found curl
+2026-10-06T09:58:01Z [ OK  ] found jq
+2026-10-06T09:58:01Z [ OK  ] found zip
+2026-10-06T09:58:01Z [ OK  ] found unzip
+
+2026-10-06T09:58:01Z [STEP ] ===== Versions =====
+2026-10-06T09:58:01Z [INFO ] docker   : 29.6.2
+2026-10-06T09:58:01Z [INFO ] kind     : kind v0.33.0 go1.27.1 darwin/arm64
+2026-10-06T09:58:01Z [INFO ] kubectl  : Client Version: v1.37.1
+2026-10-06T09:58:02Z [INFO ] istioctl : client version: 1.31.1
+2026-10-06T09:58:02Z [INFO ] openssl  : OpenSSL 3.6.4 25 Aug 2026 (Library: OpenSSL 3.6.4 25 Aug 2026)
+
+2026-10-06T09:58:03Z [STEP ] ===== Docker resources =====
+2026-10-06T09:58:04Z [WARN ] Docker has about 3 GB of memory. FreeIPA + 3 Kubernetes nodes + Istio want 10 GB or more.
+2026-10-06T09:58:04Z [ OK  ] cgroup version 2
+2026-10-06T09:58:04Z [INFO ] CPU type: arm64   (the demo was designed on x86_64)
+
+2026-10-06T09:58:04Z [STEP ] ===== Is THIS computer's kernel in FIPS mode? =====
+2026-10-06T09:58:04Z [WARN ] no: kernel FIPS mode is OFF. The demo still runs, in PRACTICE mode (you learn the steps; it is not real FIPS).
+2026-10-06T09:58:04Z [ OK  ] all checks done
+2026-10-06T09:58:04Z [ OK  ] check-tools finished

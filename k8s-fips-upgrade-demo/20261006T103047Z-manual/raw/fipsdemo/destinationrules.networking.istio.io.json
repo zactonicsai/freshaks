@@ -1,0 +1,49 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "DestinationRule",
+            "metadata": {
+                "annotations": {
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1\",\"kind\":\"DestinationRule\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/part-of\":\"fipsdemo\"},\"name\":\"fipsdemo\",\"namespace\":\"fipsdemo\"},\"spec\":{\"host\":\"fipsdemo.fipsdemo.svc.cluster.local\",\"subsets\":[{\"labels\":{\"track\":\"blue\"},\"name\":\"blue\"},{\"labels\":{\"track\":\"green\"},\"name\":\"green\"}],\"trafficPolicy\":{\"tls\":{\"mode\":\"ISTIO_MUTUAL\"}}}}\n"
+                },
+                "creationTimestamp": "2026-10-06T10:08:31Z",
+                "generation": 1,
+                "labels": {
+                    "app.kubernetes.io/part-of": "fipsdemo"
+                },
+                "name": "fipsdemo",
+                "namespace": "fipsdemo",
+                "resourceVersion": "1893",
+                "uid": "2c51bcca-bae5-41eb-92b3-b2cd4d6d4dbd"
+            },
+            "spec": {
+                "host": "fipsdemo.fipsdemo.svc.cluster.local",
+                "subsets": [
+                    {
+                        "labels": {
+                            "track": "blue"
+                        },
+                        "name": "blue"
+                    },
+                    {
+                        "labels": {
+                            "track": "green"
+                        },
+                        "name": "green"
+                    }
+                ],
+                "trafficPolicy": {
+                    "tls": {
+                        "mode": "ISTIO_MUTUAL"
+                    }
+                }
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

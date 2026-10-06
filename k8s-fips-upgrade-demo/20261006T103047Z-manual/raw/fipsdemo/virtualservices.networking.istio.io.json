@@ -1,0 +1,98 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "VirtualService",
+            "metadata": {
+                "annotations": {
+                    "fipsdemo/live-track": "blue",
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1\",\"kind\":\"VirtualService\",\"metadata\":{\"annotations\":{\"fipsdemo/live-track\":\"blue\"},\"labels\":{\"app.kubernetes.io/part-of\":\"fipsdemo\"},\"name\":\"fipsdemo\",\"namespace\":\"fipsdemo\"},\"spec\":{\"gateways\":[\"istio-ingress/fipsdemo-gateway\"],\"hosts\":[\"app.fipsdemo.test\"],\"http\":[{\"match\":[{\"headers\":{\"x-fipsdemo-track\":{\"exact\":\"green\"}}}],\"name\":\"preview-green\",\"route\":[{\"destination\":{\"host\":\"fipsdemo.fipsdemo.svc.cluster.local\",\"port\":{\"number\":80},\"subset\":\"green\"}}]},{\"match\":[{\"headers\":{\"x-fipsdemo-track\":{\"exact\":\"blue\"}}}],\"name\":\"preview-blue\",\"route\":[{\"destination\":{\"host\":\"fipsdemo.fipsdemo.svc.cluster.local\",\"port\":{\"number\":80},\"subset\":\"blue\"}}]},{\"name\":\"live\",\"route\":[{\"destination\":{\"host\":\"fipsdemo.fipsdemo.svc.cluster.local\",\"port\":{\"number\":80},\"subset\":\"blue\"}}]}]}}\n"
+                },
+                "creationTimestamp": "2026-10-06T10:08:31Z",
+                "generation": 1,
+                "labels": {
+                    "app.kubernetes.io/part-of": "fipsdemo"
+                },
+                "name": "fipsdemo",
+                "namespace": "fipsdemo",
+                "resourceVersion": "1894",
+                "uid": "040c4ae0-8f49-45b6-9b51-ed1ecfcfcc36"
+            },
+            "spec": {
+                "gateways": [
+                    "istio-ingress/fipsdemo-gateway"
+                ],
+                "hosts": [
+                    "app.fipsdemo.test"
+                ],
+                "http": [
+                    {
+                        "match": [
+                            {
+                                "headers": {
+                                    "x-fipsdemo-track": {
+                                        "exact": "green"
+                                    }
+                                }
+                            }
+                        ],
+                        "name": "preview-green",
+                        "route": [
+                            {
+                                "destination": {
+                                    "host": "fipsdemo.fipsdemo.svc.cluster.local",
+                                    "port": {
+                                        "number": 80
+                                    },
+                                    "subset": "green"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "match": [
+                            {
+                                "headers": {
+                                    "x-fipsdemo-track": {
+                                        "exact": "blue"
+                                    }
+                                }
+                            }
+                        ],
+                        "name": "preview-blue",
+                        "route": [
+                            {
+                                "destination": {
+                                    "host": "fipsdemo.fipsdemo.svc.cluster.local",
+                                    "port": {
+                                        "number": 80
+                                    },
+                                    "subset": "blue"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "live",
+                        "route": [
+                            {
+                                "destination": {
+                                    "host": "fipsdemo.fipsdemo.svc.cluster.local",
+                                    "port": {
+                                        "number": 80
+                                    },
+                                    "subset": "blue"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

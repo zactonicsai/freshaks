@@ -1,0 +1,4 @@
+2026-10-06T09:19:02Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261006T091853Z-enc.zip.enc  (416K)
+2026-10-06T09:19:03Z [ OK  ] all 146 files match their SHA-256 checksums
+2026-10-06T09:19:16Z [STEP ] ===== RESULT for side 'green' (fips): 13 passed, 0 failed, 1 warnings =====
+ENCRYPT-ROUNDTRIP-OK

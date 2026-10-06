@@ -1,0 +1,14 @@
+2026-10-06T09:56:13Z [INFO ] check-tools started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T095613Z-check-tools.log
+
+2026-10-06T09:56:13Z [STEP ] ===== Programs =====
+2026-10-06T09:56:13Z [ OK  ] found docker
+2026-10-06T09:56:13Z [ OK  ] found kind
+2026-10-06T09:56:13Z [ OK  ] found kubectl
+2026-10-06T09:56:13Z [ERROR] MISSING istioctl  ->  curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.31.1 sh -   then add istio-1.31.1/bin to PATH
+2026-10-06T09:56:13Z [ OK  ] found openssl
+2026-10-06T09:56:13Z [ OK  ] found curl
+2026-10-06T09:56:13Z [ OK  ] found jq
+2026-10-06T09:56:13Z [ OK  ] found zip
+2026-10-06T09:56:13Z [ OK  ] found unzip
+2026-10-06T09:56:13Z [ERROR] 1 program(s) missing. Install them and run this script again.
+2026-10-06T09:56:13Z [ERROR] check-tools FAILED (exit 1). Read the log: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T095613Z-check-tools.log

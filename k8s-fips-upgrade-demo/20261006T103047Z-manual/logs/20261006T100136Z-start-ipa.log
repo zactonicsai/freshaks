@@ -1,0 +1,184 @@
+2026-10-06T10:01:36Z [INFO ] start-ipa started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T100136Z-start-ipa.log
+
+2026-10-06T10:01:36Z [STEP ] ===== Start the FreeIPA container (ipa.fipsdemo.test, realm FIPSDEMO.TEST) =====
+2026-10-06T10:01:37Z [INFO ] docker run quay.io/freeipa/freeipa-server:almalinux-9 (extra options: --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw). First start installs FreeIPA: 5 to 15 minutes.
+Unable to find image 'quay.io/freeipa/freeipa-server:almalinux-9' locally
+almalinux-9: Pulling from freeipa/freeipa-server
+b3f45b7cefab: Pulling fs layer
+f18df13e8d2f: Pulling fs layer
+b31d2034db8f: Pulling fs layer
+83bbcbcdc79e: Pulling fs layer
+86a492ed259a: Pulling fs layer
+5ece5cd51ebc: Pulling fs layer
+7ced65bc2279: Pulling fs layer
+14536da6ebdd: Pulling fs layer
+1856e18c3ab0: Pulling fs layer
+7e420fe5e3a7: Pulling fs layer
+8aba2d34cfbc: Pulling fs layer
+e40445338df2: Pulling fs layer
+c35fe2550e4b: Pulling fs layer
+d56f4d924780: Pulling fs layer
+16ca6fcbc240: Pulling fs layer
+a6aa651e90a7: Pulling fs layer
+13b44b022178: Pulling fs layer
+355d2f5d6071: Pulling fs layer
+9261d5d2e750: Pulling fs layer
+67dad57115e6: Pulling fs layer
+d06ad4277097: Pulling fs layer
+37cc9f1300be: Pulling fs layer
+f31a1499c0a4: Pulling fs layer
+13aca27a44d3: Pulling fs layer
+4109045c6714: Pulling fs layer
+a2bd6130a3d8: Pulling fs layer
+95d923d0ad51: Pulling fs layer
+c28e1dc07f3f: Pulling fs layer
+cad84ba210fa: Pulling fs layer
+db839b69ae87: Pulling fs layer
+2d281016fce0: Pulling fs layer
+1ff2d15e58f7: Pulling fs layer
+e7c9200a00db: Pulling fs layer
+9426190b1575: Pulling fs layer
+28ed9cbb1732: Pulling fs layer
+29c5f75f73a5: Pulling fs layer
+863b34d34006: Pulling fs layer
+f1ab0db01087: Pulling fs layer
+05184db4d348: Pulling fs layer
+863e24743c9f: Pulling fs layer
+05377c8c6317: Pulling fs layer
+eaad4abf2088: Pulling fs layer
+13331349a83b: Pulling fs layer
+7514394cf7e6: Pulling fs layer
+8c81bafd93b9: Pulling fs layer
+84a9ade966b0: Pulling fs layer
+43bc0d6a77bd: Pulling fs layer
+b26157c70fe0: Pulling fs layer
+7e420fe5e3a7: Download complete
+05377c8c6317: Download complete
+c35fe2550e4b: Download complete
+e40445338df2: Download complete
+37cc9f1300be: Download complete
+a6aa651e90a7: Download complete
+13aca27a44d3: Download complete
+863b34d34006: Download complete
+355d2f5d6071: Download complete
+b3f45b7cefab: Download complete
+c28e1dc07f3f: Download complete
+1ff2d15e58f7: Download complete
+8aba2d34cfbc: Download complete
+86a492ed259a: Download complete
+cad84ba210fa: Download complete
+f31a1499c0a4: Download complete
+95d923d0ad51: Download complete
+16ca6fcbc240: Download complete
+13b44b022178: Download complete
+84a9ade966b0: Download complete
+29c5f75f73a5: Download complete
+f1ab0db01087: Download complete
+8c81bafd93b9: Download complete
+14536da6ebdd: Download complete
+d56f4d924780: Download complete
+a2bd6130a3d8: Download complete
+13331349a83b: Download complete
+f18df13e8d2f: Download complete
+28ed9cbb1732: Download complete
+db839b69ae87: Download complete
+4109045c6714: Download complete
+1856e18c3ab0: Download complete
+b26157c70fe0: Download complete
+83bbcbcdc79e: Download complete
+d06ad4277097: Download complete
+863e24743c9f: Download complete
+2d281016fce0: Download complete
+05184db4d348: Download complete
+9426190b1575: Download complete
+67dad57115e6: Download complete
+7514394cf7e6: Download complete
+43bc0d6a77bd: Download complete
+7ced65bc2279: Download complete
+eaad4abf2088: Download complete
+e7c9200a00db: Download complete
+9261d5d2e750: Download complete
+b31d2034db8f: Download complete
+b31d2034db8f: Pull complete
+7e420fe5e3a7: Pull complete
+c35fe2550e4b: Pull complete
+b3f45b7cefab: Pull complete
+8aba2d34cfbc: Pull complete
+16ca6fcbc240: Pull complete
+14536da6ebdd: Pull complete
+83bbcbcdc79e: Pull complete
+5ece5cd51ebc: Download complete
+355d2f5d6071: Pull complete
+86a492ed259a: Pull complete
+13b44b022178: Pull complete
+f18df13e8d2f: Pull complete
+1856e18c3ab0: Pull complete
+7ced65bc2279: Pull complete
+9261d5d2e750: Pull complete
+5ece5cd51ebc: Pull complete
+e40445338df2: Pull complete
+37cc9f1300be: Pull complete
+a6aa651e90a7: Pull complete
+863b34d34006: Pull complete
+1ff2d15e58f7: Pull complete
+84a9ade966b0: Pull complete
+29c5f75f73a5: Pull complete
+8c81bafd93b9: Pull complete
+a2bd6130a3d8: Pull complete
+13331349a83b: Pull complete
+4109045c6714: Pull complete
+b26157c70fe0: Pull complete
+d06ad4277097: Pull complete
+863e24743c9f: Pull complete
+9426190b1575: Pull complete
+67dad57115e6: Pull complete
+43bc0d6a77bd: Pull complete
+eaad4abf2088: Pull complete
+13aca27a44d3: Pull complete
+c28e1dc07f3f: Pull complete
+cad84ba210fa: Pull complete
+f31a1499c0a4: Pull complete
+d56f4d924780: Pull complete
+28ed9cbb1732: Pull complete
+2d281016fce0: Pull complete
+7514394cf7e6: Pull complete
+e7c9200a00db: Pull complete
+05377c8c6317: Pull complete
+95d923d0ad51: Pull complete
+f1ab0db01087: Pull complete
+db839b69ae87: Pull complete
+05184db4d348: Pull complete
+Digest: sha256:a8ba2c22e3df5b463bdbf1e98c7997d449d8f5e47ef7a890a99230318fae2c98
+Status: Downloaded newer image for quay.io/freeipa/freeipa-server:almalinux-9
+2026-10-06T10:02:42Z [INFO ] still waiting for FreeIPA (1 min):   [1/32]: configuring certificate server instance
+2026-10-06T10:03:43Z [INFO ] still waiting for FreeIPA (2 min):   [1/32]: configuring certificate server instance
+2026-10-06T10:04:43Z [INFO ] still waiting for FreeIPA (3 min): Done configuring directory server (dirsrv).
+2026-10-06T10:05:17Z [ OK  ] FreeIPA answers (kinit admin + ipa ping)
+2026-10-06T10:05:17Z [ OK  ] FreeIPA address inside the kind network: 172.18.0.8
+
+2026-10-06T10:05:17Z [STEP ] ===== Demo user, group and the app's Kerberos service =====
+created user alice
+FreeIPA demo entries are in place
+2026-10-06T10:05:22Z [ OK  ] saved FreeIPA's CA certificate: work/ipa/ca.crt
+
+2026-10-06T10:05:22Z [STEP ] ===== Keytab for HTTP/app.fipsdemo.test (the app's own Kerberos keys) =====
+Keytab successfully retrieved and stored in: /tmp/fipsdemo/new.keytab
+Keytab name: FILE:/tmp/fipsdemo/new.keytab
+KVNO Timestamp         Principal
+---- ----------------- --------------------------------------------------------
+   1 10/06/26 10:05:23 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes256-cts-hmac-sha384-192) 
+   1 10/06/26 10:05:23 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes128-cts-hmac-sha256-128) 
+   1 10/06/26 10:05:23 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes256-cts-hmac-sha1-96) 
+   1 10/06/26 10:05:23 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes128-cts-hmac-sha1-96) 
+
+2026-10-06T10:05:23Z [STEP ] ===== Certificates from FreeIPA's CA (RSA 2048 bits, signed with SHA-256) =====
+    subject=O=FIPSDEMO.TEST, CN=app.fipsdemo.test
+    issuer=O=FIPSDEMO.TEST, CN=Certificate Authority
+    subject=O=FIPSDEMO.TEST, CN=tester.fipsdemo.test
+    issuer=O=FIPSDEMO.TEST, CN=Certificate Authority
+2026-10-06T10:05:25Z [ OK  ] server certificate: work/ipa/tls-v1.crt    client certificate (for the mutual TLS test): work/ipa/client.crt
+
+2026-10-06T10:05:25Z [STEP ] ===== Do the accounts already have SHA-2 Kerberos keys? (needed later for FIPS) =====
+2026-10-06T10:05:26Z [ OK  ] alice has an aes256-cts-hmac-sha384-192 key
+2026-10-06T10:05:26Z [ OK  ] HTTP/app.fipsdemo.test has an aes256-cts-hmac-sha384-192 key
+2026-10-06T10:05:26Z [ OK  ] start-ipa finished

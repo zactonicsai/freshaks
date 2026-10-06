@@ -1,0 +1,52 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "networking.istio.io/v1",
+            "kind": "ServiceEntry",
+            "metadata": {
+                "annotations": {
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"networking.istio.io/v1\",\"kind\":\"ServiceEntry\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/part-of\":\"fipsdemo\"},\"name\":\"freeipa\",\"namespace\":\"fipsdemo\"},\"spec\":{\"addresses\":[\"172.18.0.8/32\"],\"endpoints\":[{\"address\":\"172.18.0.8\"}],\"exportTo\":[\".\"],\"hosts\":[\"ipa.fipsdemo.test\"],\"location\":\"MESH_EXTERNAL\",\"ports\":[{\"name\":\"tcp-kerberos\",\"number\":88,\"protocol\":\"TCP\"}],\"resolution\":\"STATIC\"}}\n"
+                },
+                "creationTimestamp": "2026-10-06T10:08:24Z",
+                "generation": 1,
+                "labels": {
+                    "app.kubernetes.io/part-of": "fipsdemo"
+                },
+                "name": "freeipa",
+                "namespace": "fipsdemo",
+                "resourceVersion": "1799",
+                "uid": "cc2c85dd-1de3-464b-b926-68a2fbb77c04"
+            },
+            "spec": {
+                "addresses": [
+                    "172.18.0.8/32"
+                ],
+                "endpoints": [
+                    {
+                        "address": "172.18.0.8"
+                    }
+                ],
+                "exportTo": [
+                    "."
+                ],
+                "hosts": [
+                    "ipa.fipsdemo.test"
+                ],
+                "location": "MESH_EXTERNAL",
+                "ports": [
+                    {
+                        "name": "tcp-kerberos",
+                        "number": 88,
+                        "protocol": "TCP"
+                    }
+                ],
+                "resolution": "STATIC"
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

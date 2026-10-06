@@ -1,0 +1,43 @@
+2026-10-06T10:30:47Z [INFO ] save-state started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T103047Z-save-state.log
+
+2026-10-06T10:30:47Z [STEP ] ===== 1. Facts about the cluster =====
+SNAPSHOT_NAME=20261006T103047Z-manual
+CREATED_UTC=2026-10-06T10:30:47Z
+LABEL=manual
+KUBE_CONTEXT=kind-fipsdemo
+CLUSTER_NAME=fipsdemo
+APP_NS=fipsdemo
+INGRESS_NS=istio-ingress
+LIVE_TRACK=blue
+TLS_SECRET=fipsdemo-tls-v1
+MESH_POLICY=
+IPA_IP=172.18.0.8
+HAS_IMAGES=0
+HAS_IPA_DATA=0
+
+2026-10-06T10:30:47Z [STEP ] ===== 2. Every object of the demo, twice: raw (exactly as it is) and clean (ready to put back) =====
+2026-10-06T10:30:47Z [INFO ] saved 1 x serviceaccounts in fipsdemo
+2026-10-06T10:30:47Z [INFO ] saved 1 x configmaps in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 2 x secrets in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x services in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x deployments.apps in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x destinationrules.networking.istio.io in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x virtualservices.networking.istio.io in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x serviceentries.networking.istio.io in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x sidecars.networking.istio.io in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x peerauthentications.security.istio.io in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x authorizationpolicies.security.istio.io in fipsdemo
+2026-10-06T10:30:48Z [INFO ] saved 1 x serviceaccounts in istio-ingress
+2026-10-06T10:30:49Z [INFO ] saved 1 x secrets in istio-ingress
+2026-10-06T10:30:49Z [INFO ] saved 1 x roles.rbac.authorization.k8s.io in istio-ingress
+2026-10-06T10:30:49Z [INFO ] saved 1 x rolebindings.rbac.authorization.k8s.io in istio-ingress
+2026-10-06T10:30:49Z [INFO ] saved 1 x services in istio-ingress
+2026-10-06T10:30:49Z [INFO ] saved 1 x deployments.apps in istio-ingress
+2026-10-06T10:30:49Z [INFO ] saved 1 x gateways.networking.istio.io in istio-ingress
+2026-10-06T10:30:49Z [ OK  ] 19 objects saved
+
+2026-10-06T10:30:49Z [STEP ] ===== 3. Rollout history and what is running right now =====
+
+2026-10-06T10:30:49Z [STEP ] ===== 4. Istio settings =====
+
+2026-10-06T10:30:50Z [STEP ] ===== 5. The project itself, run-time secrets and logs (so the zip is complete on its own) =====

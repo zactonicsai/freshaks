@@ -1,0 +1,13 @@
+# Settings for "istioctl install". The FIPS upgrade adds exactly one thing on top of this file:
+#   --set values.pilot.env.COMPLIANCE_POLICY=fips-140-3
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: fipsdemo
+spec:
+  profile: minimal                 # control plane only; the gateway is its own small deployment
+  meshConfig:
+    accessLogFile: /dev/stdout     # every request through a proxy is logged ("log everything")
+    enableAutoMtls: true
+    defaultConfig:
+      holdApplicationUntilProxyStarts: true

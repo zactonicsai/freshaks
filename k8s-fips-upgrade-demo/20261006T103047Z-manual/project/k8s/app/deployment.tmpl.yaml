@@ -1,0 +1,83 @@
+# One template, used twice:  COLOR=blue (non-FIPS image)  and  COLOR=green (FIPS image).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fipsdemo-__COLOR__
+  namespace: __APP_NS__
+  labels: {app: fipsdemo, track: __COLOR__, app.kubernetes.io/part-of: fipsdemo}
+  annotations:
+    kubernetes.io/change-cause: "__CHANGE_CAUSE__"
+spec:
+  replicas: __REPLICAS__
+  revisionHistoryLimit: 5              # keeps old versions for "kubectl rollout undo"
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app: fipsdemo, track: __COLOR__}
+  template:
+    metadata:
+      labels:
+        app: fipsdemo
+        track: __COLOR__
+        version: "__VERSION__"
+        app.kubernetes.io/part-of: fipsdemo
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: fipsdemo
+      nodeSelector:
+        __NODE_KEY__: "__NODE_VALUE__"   # blue pods on blue nodes, green pods on the FIPS nodes
+      hostAliases:                       # FreeIPA lives outside the cluster; this is its address
+      - ip: "__IPA_IP__"
+        hostnames: ["__IPA_HOSTNAME__"]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 185
+        fsGroup: 185
+        seccompProfile: {type: RuntimeDefault}
+      terminationGracePeriodSeconds: 20
+      containers:
+      - name: app
+        image: __IMAGE__
+        imagePullPolicy: IfNotPresent
+        ports:
+        - {name: http, containerPort: 8080}
+        env:
+        - {name: KRB_REALM, value: "__REALM__"}
+        - {name: KRB_SERVICE_PRINCIPAL, value: "__SPN__"}
+        - {name: KRB5_CONF, value: /etc/fipsdemo/krb5/krb5.conf}
+        - {name: KRB_KEYTAB, value: /etc/fipsdemo/keytab/app.keytab}
+        - {name: SESSION_KEY_FILE, value: /etc/fipsdemo/session/session.key}
+        - name: POD_NAME
+          valueFrom: {fieldRef: {fieldPath: metadata.name}}
+        - name: NODE_NAME
+          valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+        readinessProbe:
+          httpGet: {path: /healthz, port: 8080}
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet: {path: /healthz, port: 8080}
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests: {cpu: 50m, memory: 128Mi}
+          limits: {memory: 384Mi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: ["ALL"]}
+        volumeMounts:
+        - {name: krb5, mountPath: /etc/fipsdemo/krb5, readOnly: true}
+        - {name: keytab, mountPath: /etc/fipsdemo/keytab, readOnly: true}
+        - {name: session, mountPath: /etc/fipsdemo/session, readOnly: true}
+        - {name: tmp, mountPath: /tmp}
+      volumes:
+      - name: krb5
+        configMap: {name: fipsdemo-krb5-__PROFILE__}
+      - name: keytab
+        secret: {secretName: __KEYTAB_SECRET__, defaultMode: 0440}
+      - name: session
+        secret: {secretName: __SESSION_SECRET__, defaultMode: 0440}
+      - name: tmp
+        emptyDir: {medium: Memory, sizeLimit: 32Mi}

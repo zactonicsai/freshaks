@@ -1,0 +1,11 @@
+body { font-family: system-ui, sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; color: #1b1b1b; }
+.banner { padding: .8rem 1rem; border-radius: .5rem; color: #fff; font-weight: 600; }
+.banner.legacy { background: #1f5fbf; }
+.banner.fips { background: #1c7c3c; }
+nav a { margin-right: 1rem; }
+table { border-collapse: collapse; margin-top: 1rem; }
+td { border: 1px solid #ccc; padding: .35rem .7rem; }
+td:first-child { font-weight: 600; background: #f3f3f3; }
+.msg { color: #b00020; font-weight: 600; }
+input { display: block; margin: .3rem 0 1rem; padding: .4rem; width: 16rem; }
+button { padding: .5rem 1.2rem; }

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Secure page</title>
+<link rel="stylesheet" href="/style.css"></head><body>
+<div class="banner {{bannerClass}}">FIPS upgrade demo &mdash; {{profileTitle}}</div>
+<nav><a href="/">Public page</a><a href="/login">Login</a><a href="/secure">Secure page</a><a href="/mtls">Certificate page</a><a href="/status">Status</a><a href="/logout">Logout</a></nav>
+<h1>Secure page</h1>
+<p id="marker">SECURE-PAGE-OK: hello {{user}}</p>
+<table>
+<tr><td>Kerberos ticket key type</td><td>{{ticketEnctype}}</td></tr>
+<tr><td>Key type family</td><td>{{ticketFamily}}</td></tr>
+<tr><td>Logged in at</td><td>{{loginTime}}</td></tr>
+<tr><td>Session ends at</td><td>{{expires}}</td></tr>
+</table>
+<table>
+<tr><td>App version</td><td>{{version}}</td></tr>
+<tr><td>Crypto profile</td><td>{{profile}}</td></tr>
+<tr><td>Session cookie signed with</td><td>{{mac}}</td></tr>
+<tr><td>Linux in this pod</td><td>{{os}}</td></tr>
+<tr><td>Linux crypto policy</td><td>{{osPolicy}}</td></tr>
+<tr><td>Kernel FIPS switch</td><td>{{kernelFips}}</td></tr>
+<tr><td>Pod / node</td><td>{{pod}} / {{node}}</td></tr>
+</table>
+</body></html>

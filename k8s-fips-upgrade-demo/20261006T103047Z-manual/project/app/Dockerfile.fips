@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+#  FIPS image ("green", version 2.0)
+#  Same Red Hat UBI 9 + OpenJDK 25 base as the non-FIPS image (change ONE thing at a time),
+#  plus: Linux crypto policy = FIPS, app crypto profile = fips.
+#
+#  Honest note: this makes the image FIPS-READY. It is only truly "running in FIPS mode"
+#  when the node's kernel was booted with fips=1 and uses validated crypto modules
+#  (for UBI that means a RHEL host). Red Hat's OpenJDK then switches itself to FIPS automatically.
+# ---------------------------------------------------------------------------
+ARG BUILDER_IMAGE=registry.access.redhat.com/ubi9/openjdk-25
+ARG RUNTIME_IMAGE=registry.access.redhat.com/ubi9/openjdk-25-runtime
+
+FROM ${BUILDER_IMAGE} AS build
+USER root
+WORKDIR /build
+COPY src/ src/
+RUN mkdir classes && "${JAVA_HOME:-/usr/lib/jvm/java-25}/bin/javac" -d classes src/demo/*.java
+
+FROM ${RUNTIME_IMAGE}
+ARG APP_VERSION=2.0-fips
+USER root
+# Switch every crypto library in the image (OpenSSL, GnuTLS, NSS, Kerberos, Java) to the FIPS rule set.
+# The tool prints a warning that the policy alone is not full FIPS mode. That is true, see the note above.
+RUN if ! command -v update-crypto-policies >/dev/null 2>&1; then \
+      microdnf install -y crypto-policies-scripts && microdnf clean all; \
+    fi \
+ && update-crypto-policies --no-reload --set FIPS \
+ && test "$(update-crypto-policies --show)" = "FIPS"
+COPY --from=build /build/classes/ /opt/app/classes/
+COPY web/ /opt/app/web/
+COPY run.sh /opt/app/run.sh
+RUN chmod 0555 /opt/app/run.sh && chmod -R a+rX /opt/app
+ENV APP_CRYPTO_PROFILE=fips \
+    APP_VERSION=${APP_VERSION}
+USER 185
+EXPOSE 8080
+ENTRYPOINT ["/opt/app/run.sh"]

@@ -1,0 +1,332 @@
+################ STAGE 02-start-ipa: scripts/02-start-ipa.sh ################
+   5 10/05/26 23:39:05 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes256-cts-hmac-sha384-192) 
+   5 10/05/26 23:39:05 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes128-cts-hmac-sha256-128) 
+   5 10/05/26 23:39:05 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes256-cts-hmac-sha1-96) 
+   5 10/05/26 23:39:05 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes128-cts-hmac-sha1-96) 
+2026-10-05T23:39:06Z [ OK  ] alice has an aes256-cts-hmac-sha384-192 key
+2026-10-05T23:39:06Z [ OK  ] HTTP/app.fipsdemo.test has an aes256-cts-hmac-sha384-192 key
+################ STAGE 03-install-istio: scripts/03-install-istio.sh ################
+################ STAGE 05-deploy-nonfips: scripts/05-deploy-nonfips.sh ################
+NAME                            READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES
+2026-10-05T23:39:22Z [PASS ] public page opens without login
+2026-10-05T23:39:22Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:39:23Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:39:23Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:39:23Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:39:23Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:39:23Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:39:23Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:39:23Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:39:23Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:39:23Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:39:23Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:39:24Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:39:24Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+################ STAGE 10-save-state: scripts/10-save-state.sh --label manual --with-images --with-ipa-data ################
+2026-10-05T23:39:32Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261005T233924Z-manual.zip  (140K)
+2026-10-05T23:39:32Z [ OK  ] its checksum    : 5f869153387babf57b16ca57c6bea31b22cbade58ec4a4656cdecd24f2758571  20261005T233924Z-manual.zip
+2026-10-05T23:39:32Z [WARN ] The snapshot holds SECRETS (private keys, keytab, demo passwords). Guard it like a house key.
+################ STAGE 20-upgrade with a forced failure in phase 4 (mesh): env SBX_FAIL_AT=mesh scripts/20-upgrade-to-fips.sh ################
+2026-10-05T23:39:32Z [STEP ] ===== PHASE 0 - look before you leap (nothing is changed in this phase) =====
+2026-10-05T23:39:34Z [PASS ] public page opens without login
+2026-10-05T23:39:34Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:39:35Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:39:35Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:39:35Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:39:35Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:39:35Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:39:35Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:39:35Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:39:35Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:39:35Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:39:35Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:39:35Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:39:35Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:39:35Z [WARN ] green node sandbox-node: kernel FIPS mode is OFF
+2026-10-05T23:39:35Z [WARN ] ################################################################################
+2026-10-05T23:39:35Z [WARN ] #  PRACTICE MODE: the green nodes do not run a FIPS-mode kernel.               #
+2026-10-05T23:39:35Z [WARN ] #  You will practise every step of the upgrade, and all the SHA-2 settings     #
+2026-10-05T23:39:35Z [WARN ] #  are real, but the result is NOT a real FIPS system.                         #
+2026-10-05T23:39:35Z [WARN ] #  For a real one: nodes booted with fips=1 + validated crypto modules,        #
+2026-10-05T23:39:35Z [WARN ] #  and set REQUIRE_KERNEL_FIPS=true in config.env.                             #
+2026-10-05T23:39:35Z [WARN ] ################################################################################
+2026-10-05T23:39:35Z [STEP ] ===== PHASE 1 - save the current state (this is the place we can always come back to) =====
+2026-10-05T23:39:43Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261005T233935Z-pre-fips.zip  (136K)
+2026-10-05T23:39:43Z [ OK  ] its checksum    : e05cf5b27feb23f3e7f651511f4e53c4caf9fa6c281c92dc97b6538a88dc5ae5  20261005T233935Z-pre-fips.zip
+2026-10-05T23:39:43Z [WARN ] The snapshot holds SECRETS (private keys, keytab, demo passwords). Guard it like a house key.
+2026-10-05T23:39:43Z [STEP ] ===== PHASE 2 - build the FIPS image =====
+2026-10-05T23:39:43Z [STEP ] ===== PHASE 3 - EXPAND: add the new FIPS things next to the old ones (the old ones keep working) =====
+     5 10/05/26 23:39:43 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes256-cts-hmac-sha384-192) 
+     5 10/05/26 23:39:43 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes128-cts-hmac-sha256-128) 
+2026-10-05T23:39:45Z [STEP ] ===== PHASE 4 - mesh: switch Istio to the FIPS TLS rules (fips-140-3) =====
+2026-10-05T23:39:45Z [ERROR] command failed at line 105 of upgrade-to-fips: ( set -e; step "PHASE 2 - build the FIPS image"; build_and_load_image fips; step "PHASE 3 - EXPAND: add the new FIPS things 
+2026-10-05T23:39:45Z [WARN ] AUTO_ROLLBACK is on: putting everything back the way snapshot 20261005T233935Z-pre-fips says
+2026-10-05T23:39:45Z [INFO ] rollback started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T233932Z-upgrade-to-fips.log
+2026-10-05T23:39:45Z [STEP ] ===== FULL ROLLBACK - back to snapshot 20261005T233935Z-pre-fips =====
+2026-10-05T23:39:46Z [ OK  ] all 105 files match their SHA-256 checksums
+2026-10-05T23:39:59Z [ OK  ] state '20261005T233935Z-pre-fips' is back. Live side: 'blue'
+2026-10-05T23:40:06Z [PASS ] public page opens without login
+2026-10-05T23:40:06Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:40:06Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:40:07Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:40:07Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:40:07Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:40:07Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:40:07Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:40:07Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:40:07Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:40:07Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:40:07Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:40:07Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:40:07Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:40:07Z [STEP ] ===== FULL ROLLBACK DONE in 22 seconds =====
+2026-10-05T23:40:07Z [ OK  ] rollback finished
+2026-10-05T23:40:07Z [WARN ] the upgrade was UNDONE. You are back on the non-FIPS (blue) system, which passed its tests.
+################ STAGE 20-upgrade with a forced failure in phase 5 (green pods cannot start): env APP_IMAGE_FIPS=fipsdemo-app:broken SBX_SKIP_IMAGE_CHECK=1 ROLLOUT_TIMEOUT=45s scripts/20-upgrade-to-fi
+2026-10-05T23:40:07Z [STEP ] ===== PHASE 0 - look before you leap (nothing is changed in this phase) =====
+2026-10-05T23:40:10Z [PASS ] public page opens without login
+2026-10-05T23:40:10Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:40:10Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:40:10Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:40:10Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:40:10Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:40:10Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:40:10Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:40:10Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:40:10Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:40:10Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:40:10Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:40:11Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:40:11Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:40:11Z [WARN ] green node sandbox-node: kernel FIPS mode is OFF
+2026-10-05T23:40:11Z [WARN ] ################################################################################
+2026-10-05T23:40:11Z [WARN ] #  PRACTICE MODE: the green nodes do not run a FIPS-mode kernel.               #
+2026-10-05T23:40:11Z [WARN ] #  You will practise every step of the upgrade, and all the SHA-2 settings     #
+2026-10-05T23:40:11Z [WARN ] #  are real, but the result is NOT a real FIPS system.                         #
+2026-10-05T23:40:11Z [WARN ] #  For a real one: nodes booted with fips=1 + validated crypto modules,        #
+2026-10-05T23:40:11Z [WARN ] #  and set REQUIRE_KERNEL_FIPS=true in config.env.                             #
+2026-10-05T23:40:11Z [WARN ] ################################################################################
+2026-10-05T23:40:11Z [STEP ] ===== PHASE 1 - save the current state (this is the place we can always come back to) =====
+2026-10-05T23:40:19Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261005T234011Z-pre-fips.zip  (148K)
+2026-10-05T23:40:19Z [ OK  ] its checksum    : 6ba57af4b9e71e2b0276c93950c622eff45b176040421049c26447f8d994a6a4  20261005T234011Z-pre-fips.zip
+2026-10-05T23:40:19Z [WARN ] The snapshot holds SECRETS (private keys, keytab, demo passwords). Guard it like a house key.
+2026-10-05T23:40:19Z [STEP ] ===== PHASE 2 - build the FIPS image =====
+2026-10-05T23:40:19Z [WARN ] (sandbox) not checking that fipsdemo-app:broken exists
+2026-10-05T23:40:19Z [STEP ] ===== PHASE 3 - EXPAND: add the new FIPS things next to the old ones (the old ones keep working) =====
+     5 10/05/26 23:40:19 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes256-cts-hmac-sha384-192) 
+     5 10/05/26 23:40:19 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes128-cts-hmac-sha256-128) 
+2026-10-05T23:40:21Z [STEP ] ===== PHASE 4 - mesh: switch Istio to the FIPS TLS rules (fips-140-3) =====
+2026-10-05T23:40:21Z [INFO ] GATE: do the old blue pods still work behind the FIPS-policy gateway?
+2026-10-05T23:40:24Z [PASS ] public page opens without login
+2026-10-05T23:40:24Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:40:24Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:40:24Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:40:24Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:40:24Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:40:24Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:40:24Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:40:24Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:40:24Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:40:24Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:40:24Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:40:24Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:40:24Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:40:24Z [ OK  ] GATE passed: blue still works
+2026-10-05T23:40:24Z [STEP ] ===== PHASE 5 - start the green (FIPS) pods on the green nodes. Visitors still go to blue. =====
+2026-10-05T23:41:10Z [ERROR] command failed at line 105 of upgrade-to-fips: ( set -e; step "PHASE 2 - build the FIPS image"; build_and_load_image fips; step "PHASE 3 - EXPAND: add the new FIPS things 
+2026-10-05T23:41:10Z [WARN ] AUTO_ROLLBACK is on: putting everything back the way snapshot 20261005T234011Z-pre-fips says
+2026-10-05T23:41:10Z [INFO ] rollback started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234007Z-upgrade-to-fips.log
+2026-10-05T23:41:10Z [STEP ] ===== FULL ROLLBACK - back to snapshot 20261005T234011Z-pre-fips =====
+2026-10-05T23:41:11Z [ OK  ] all 113 files match their SHA-256 checksums
+2026-10-05T23:41:27Z [ OK  ] state '20261005T234011Z-pre-fips' is back. Live side: 'blue'
+2026-10-05T23:41:35Z [PASS ] public page opens without login
+2026-10-05T23:41:35Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:41:35Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:41:35Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:41:36Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:41:36Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:41:36Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:41:36Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:41:36Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:41:36Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:41:36Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:41:36Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:41:37Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:41:37Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:41:37Z [STEP ] ===== FULL ROLLBACK DONE in 27 seconds =====
+2026-10-05T23:41:37Z [ OK  ] rollback finished
+2026-10-05T23:41:37Z [WARN ] the upgrade was UNDONE. You are back on the non-FIPS (blue) system, which passed its tests.
+################ STAGE 20-upgrade-to-fips: scripts/20-upgrade-to-fips.sh ################
+2026-10-05T23:41:37Z [STEP ] ===== PHASE 0 - look before you leap (nothing is changed in this phase) =====
+2026-10-05T23:41:39Z [PASS ] public page opens without login
+2026-10-05T23:41:39Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:41:40Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:41:40Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:41:40Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:41:40Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:41:40Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:41:40Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:41:40Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:41:40Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:41:40Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:41:40Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:41:41Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:41:41Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:41:41Z [WARN ] green node sandbox-node: kernel FIPS mode is OFF
+2026-10-05T23:41:41Z [WARN ] ################################################################################
+2026-10-05T23:41:41Z [WARN ] #  PRACTICE MODE: the green nodes do not run a FIPS-mode kernel.               #
+2026-10-05T23:41:41Z [WARN ] #  You will practise every step of the upgrade, and all the SHA-2 settings     #
+2026-10-05T23:41:41Z [WARN ] #  are real, but the result is NOT a real FIPS system.                         #
+2026-10-05T23:41:41Z [WARN ] #  For a real one: nodes booted with fips=1 + validated crypto modules,        #
+2026-10-05T23:41:41Z [WARN ] #  and set REQUIRE_KERNEL_FIPS=true in config.env.                             #
+2026-10-05T23:41:41Z [WARN ] ################################################################################
+2026-10-05T23:41:41Z [STEP ] ===== PHASE 1 - save the current state (this is the place we can always come back to) =====
+2026-10-05T23:41:49Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261005T234141Z-pre-fips.zip  (152K)
+2026-10-05T23:41:49Z [ OK  ] its checksum    : 288155d7cf1a749b18b4900ae0e38ff22a29f9a3e4c396c73fd1872524343ea3  20261005T234141Z-pre-fips.zip
+2026-10-05T23:41:49Z [WARN ] The snapshot holds SECRETS (private keys, keytab, demo passwords). Guard it like a house key.
+2026-10-05T23:41:49Z [STEP ] ===== PHASE 2 - build the FIPS image =====
+2026-10-05T23:41:49Z [STEP ] ===== PHASE 3 - EXPAND: add the new FIPS things next to the old ones (the old ones keep working) =====
+     5 10/05/26 23:41:49 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes256-cts-hmac-sha384-192) 
+     5 10/05/26 23:41:49 HTTP/app.fipsdemo.test@FIPSDEMO.TEST (aes128-cts-hmac-sha256-128) 
+2026-10-05T23:41:50Z [STEP ] ===== PHASE 4 - mesh: switch Istio to the FIPS TLS rules (fips-140-3) =====
+2026-10-05T23:41:51Z [INFO ] GATE: do the old blue pods still work behind the FIPS-policy gateway?
+2026-10-05T23:41:53Z [PASS ] public page opens without login
+2026-10-05T23:41:53Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:41:54Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:41:54Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:41:54Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:41:54Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:41:54Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:41:54Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:41:54Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:41:54Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:41:54Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:41:54Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:41:54Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:41:54Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:41:54Z [ OK  ] GATE passed: blue still works
+2026-10-05T23:41:54Z [STEP ] ===== PHASE 5 - start the green (FIPS) pods on the green nodes. Visitors still go to blue. =====
+NAME                              READY   STATUS    RESTARTS   AGE   IP           NODE           NOMINATED NODE   READINESS GATES
+2026-10-05T23:41:57Z [STEP ] ===== PHASE 6 - GATE: test green through the real front door, using the secret preview header =====
+2026-10-05T23:41:59Z [PASS ] public page opens without login
+2026-10-05T23:41:59Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:42:00Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:42:00Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:42:00Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:42:00Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha384-192
+2026-10-05T23:42:00Z [INFO ] status: {"app":"fipsdemo-app","version":"2.0-fips","cryptoProfile":"fips","selfTest":"passed","sessionMac":"HmacSHA256","kernelFipsEnabled":"unavailable","osCryptoPolicy":
+2026-10-05T23:42:00Z [PASS ] app crypto profile is 'fips'
+2026-10-05T23:42:00Z [PASS ] login cookies are signed with HmacSHA256
+2026-10-05T23:42:00Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:42:00Z [PASS ] Linux crypto policy inside the pod is FIPS
+2026-10-05T23:42:00Z [PASS ] the pod's keytab holds SHA-2 keys only
+2026-10-05T23:42:00Z [WARN ] PRACTICE MODE: node kernel is not in FIPS mode. Everything else is set up the FIPS way, but this is not real FIPS.
+2026-10-05T23:42:01Z [PASS ] deployment fipsdemo-green has 1 ready pod(s)
+2026-10-05T23:42:01Z [PASS ] all green pods run on nodes labelled sandbox/green=yes
+2026-10-05T23:42:01Z [STEP ] ===== RESULT for side 'green' (fips): 13 passed, 0 failed, 1 warnings =====
+2026-10-05T23:42:01Z [ OK  ] GATE passed: green is healthy and FIPS-configured
+2026-10-05T23:42:01Z [STEP ] ===== PHASE 7 - CUT-OVER: send all visitors to green and show the new certificate =====
+2026-10-05T23:42:09Z [INFO ] GATE: the full test again, now as a normal visitor
+2026-10-05T23:42:12Z [PASS ] public page opens without login
+2026-10-05T23:42:12Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:42:12Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:42:12Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:42:12Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:42:12Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha384-192
+2026-10-05T23:42:12Z [INFO ] status: {"app":"fipsdemo-app","version":"2.0-fips","cryptoProfile":"fips","selfTest":"passed","sessionMac":"HmacSHA256","kernelFipsEnabled":"unavailable","osCryptoPolicy":
+2026-10-05T23:42:12Z [PASS ] app crypto profile is 'fips'
+2026-10-05T23:42:12Z [PASS ] login cookies are signed with HmacSHA256
+2026-10-05T23:42:12Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:42:12Z [PASS ] Linux crypto policy inside the pod is FIPS
+2026-10-05T23:42:12Z [PASS ] the pod's keytab holds SHA-2 keys only
+2026-10-05T23:42:12Z [WARN ] PRACTICE MODE: node kernel is not in FIPS mode. Everything else is set up the FIPS way, but this is not real FIPS.
+2026-10-05T23:42:13Z [PASS ] deployment fipsdemo-green has 1 ready pod(s)
+2026-10-05T23:42:13Z [PASS ] all green pods run on nodes labelled sandbox/green=yes
+2026-10-05T23:42:13Z [STEP ] ===== RESULT for side 'green' (fips): 13 passed, 0 failed, 1 warnings =====
+2026-10-05T23:42:13Z [ OK  ] GATE passed: visitors are served by the FIPS side
+2026-10-05T23:42:13Z [STEP ] ===== PHASE 8 - save the new state =====
+2026-10-05T23:42:21Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261005T234213Z-post-fips.zip  (168K)
+2026-10-05T23:42:21Z [ OK  ] its checksum    : 140d4d7c701298155d22bb96495adbdae9dc620352f7108c1b13d90d92ec3eda  20261005T234213Z-post-fips.zip
+2026-10-05T23:42:21Z [WARN ] The snapshot holds SECRETS (private keys, keytab, demo passwords). Guard it like a house key.
+2026-10-05T23:42:21Z [STEP ] ===== UPGRADE DONE in 44 seconds =====
+2026-10-05T23:42:21Z [INFO ]   - changed your mind?  scripts/30-rollback.sh          (seconds: just flips the traffic back)
+2026-10-05T23:42:21Z [INFO ]   - undo everything?    scripts/30-rollback.sh --full    (back to snapshot 20261005T234141Z-pre-fips)
+################ STAGE 30-rollback --fast: scripts/30-rollback.sh --fast --yes ################
+2026-10-05T23:42:21Z [INFO ] rollback started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234221Z-rollback.log
+2026-10-05T23:42:21Z [INFO ] save-state started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234221Z-rollback.log
+SNAPSHOT_NAME=20261005T234221Z-pre-rollback
+LABEL=pre-rollback
+2026-10-05T23:42:30Z [ OK  ] snapshot folder : /home/claude/k8s-fips-upgrade-demo/state/20261005T234221Z-pre-rollback
+2026-10-05T23:42:30Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261005T234221Z-pre-rollback.zip  (172K)
+2026-10-05T23:42:30Z [ OK  ] its checksum    : 305492f6e8f77078c11e7cc236e53a1ff3c76c56ba7ce6beaf7565a06360c239  20261005T234221Z-pre-rollback.zip
+2026-10-05T23:42:30Z [WARN ] The snapshot holds SECRETS (private keys, keytab, demo passwords). Guard it like a house key.
+2026-10-05T23:42:30Z [INFO ] Put it back here     : scripts/40-restore-state.sh 20261005T234221Z-pre-rollback --in-place --prune
+2026-10-05T23:42:30Z [STEP ] ===== FAST ROLLBACK - flip the traffic switch =====
+2026-10-05T23:42:35Z [INFO ] test started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234221Z-rollback.log
+2026-10-05T23:42:37Z [PASS ] public page opens without login
+2026-10-05T23:42:38Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:42:38Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:42:38Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:42:38Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:42:38Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:42:38Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:42:38Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:42:38Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:42:38Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:42:38Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:42:38Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:42:38Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:42:38Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:42:38Z [STEP ] ===== FAST ROLLBACK DONE in 17 seconds =====
+2026-10-05T23:42:38Z [INFO ] Still in place: the green pods and the FIPS mesh policy. To remove them too: scripts/30-rollback.sh --full
+2026-10-05T23:42:38Z [ OK  ] rollback finished
+################ STAGE 31-switch-live green (roll forward again): scripts/31-switch-live.sh green ################
+2026-10-05T23:42:47Z [PASS ] public page opens without login
+2026-10-05T23:42:47Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:42:47Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:42:47Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:42:47Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:42:47Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha384-192
+2026-10-05T23:42:47Z [INFO ] status: {"app":"fipsdemo-app","version":"2.0-fips","cryptoProfile":"fips","selfTest":"passed","sessionMac":"HmacSHA256","kernelFipsEnabled":"unavailable","osCryptoPolicy":
+2026-10-05T23:42:47Z [PASS ] app crypto profile is 'fips'
+2026-10-05T23:42:47Z [PASS ] login cookies are signed with HmacSHA256
+2026-10-05T23:42:47Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:42:47Z [PASS ] Linux crypto policy inside the pod is FIPS
+2026-10-05T23:42:47Z [PASS ] the pod's keytab holds SHA-2 keys only
+2026-10-05T23:42:47Z [WARN ] PRACTICE MODE: node kernel is not in FIPS mode. Everything else is set up the FIPS way, but this is not real FIPS.
+2026-10-05T23:42:47Z [PASS ] deployment fipsdemo-green has 1 ready pod(s)
+2026-10-05T23:42:48Z [PASS ] all green pods run on nodes labelled sandbox/green=yes
+2026-10-05T23:42:48Z [STEP ] ===== RESULT for side 'green' (fips): 13 passed, 0 failed, 1 warnings =====
+################ STAGE 30-rollback --full: scripts/30-rollback.sh --full --yes ################
+2026-10-05T23:42:48Z [INFO ] rollback started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234248Z-rollback.log
+2026-10-05T23:42:48Z [INFO ] save-state started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234248Z-rollback.log
+SNAPSHOT_NAME=20261005T234248Z-pre-rollback
+LABEL=pre-rollback
+2026-10-05T23:42:56Z [ OK  ] snapshot folder : /home/claude/k8s-fips-upgrade-demo/state/20261005T234248Z-pre-rollback
+2026-10-05T23:42:56Z [ OK  ] portable file   : /home/claude/k8s-fips-upgrade-demo/state/20261005T234248Z-pre-rollback.zip  (176K)
+2026-10-05T23:42:56Z [ OK  ] its checksum    : 3389490a184a6610b8152687b9b1959a6f5987ea8b80d375adc76fdb951459ad  20261005T234248Z-pre-rollback.zip
+2026-10-05T23:42:56Z [WARN ] The snapshot holds SECRETS (private keys, keytab, demo passwords). Guard it like a house key.
+2026-10-05T23:42:56Z [INFO ] Put it back here     : scripts/40-restore-state.sh 20261005T234248Z-pre-rollback --in-place --prune
+2026-10-05T23:42:56Z [STEP ] ===== FULL ROLLBACK - back to snapshot 20261005T234141Z-pre-fips =====
+2026-10-05T23:42:57Z [INFO ] restore-state started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234248Z-rollback.log
+2026-10-05T23:42:57Z [ OK  ] all 114 files match their SHA-256 checksums
+2026-10-05T23:43:15Z [ OK  ] state '20261005T234141Z-pre-fips' is back. Live side: 'blue'
+2026-10-05T23:43:20Z [INFO ] test started. Log file: /home/claude/k8s-fips-upgrade-demo/logs/20261005T234248Z-rollback.log
+2026-10-05T23:43:22Z [PASS ] public page opens without login
+2026-10-05T23:43:22Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-05T23:43:22Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-05T23:43:23Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-05T23:43:23Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-05T23:43:23Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha1-96
+2026-10-05T23:43:23Z [INFO ] status: {"app":"fipsdemo-app","version":"1.0-nonfips","cryptoProfile":"legacy","selfTest":"passed","sessionMac":"HmacSHA1","kernelFipsEnabled":"unavailable","osCryptoPolic
+2026-10-05T23:43:23Z [PASS ] app crypto profile is 'legacy'
+2026-10-05T23:43:23Z [PASS ] login cookies are signed with HmacSHA1
+2026-10-05T23:43:23Z [PASS ] start-up crypto self-test passed
+2026-10-05T23:43:23Z [PASS ] Linux crypto policy inside the pod is DEFAULT
+2026-10-05T23:43:23Z [PASS ] deployment fipsdemo-blue has 1 ready pod(s)
+2026-10-05T23:43:23Z [PASS ] all blue pods run on nodes labelled sandbox/blue=yes
+2026-10-05T23:43:23Z [STEP ] ===== RESULT for side 'blue' (nonfips): 12 passed, 0 failed, 0 warnings =====
+2026-10-05T23:43:23Z [STEP ] ===== FULL ROLLBACK DONE in 35 seconds =====
+2026-10-05T23:43:23Z [ OK  ] rollback finished
+################ STAGE 20-upgrade-again: scripts/20-upgrade-to-fips.sh ################
+2026-10-05T23:43:24Z [STEP ] ===== PHASE 0 - look before you leap (nothing is changed in this phase) =====

@@ -1,0 +1,50 @@
+2026-10-06T10:05:46Z [INFO ] install-istio started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T100546Z-install-istio.log
+
+2026-10-06T10:05:46Z [STEP ] ===== Install Istio 1.31.1 control plane =====
+2026-10-06T10:05:46Z [INFO ] istioctl install (compliance policy: none)
+        |\          
+        | \         
+        |  \        
+        |   \       
+      /||    \      
+     / ||     \     
+    /  ||      \    
+   /   ||       \   
+  /    ||        \  
+ /     ||         \ 
+/______||__________\
+____________________
+  \__       _____/  
+     \_____/        
+
+
+- Processing resources for Istio core.
+✔ Istio core installed ⛵️
+- Processing resources for Istiod.
+- Processing resources for Istiod. Waiting for Deployment/istio-system/istiod
+✔ Istiod installed 🧠
+- Pruning removed resources
+✔ Installation completedeployment "istiod" successfully rolled out
+
+2026-10-06T10:05:55Z [STEP ] ===== Install the ingress gateway (NodePort 30443 -> https://app.fipsdemo.test:8443) =====
+serviceaccount/istio-ingressgateway created
+service/istio-ingressgateway created
+deployment.apps/istio-ingressgateway created
+role.rbac.authorization.k8s.io/istio-ingressgateway-sds created
+rolebinding.rbac.authorization.k8s.io/istio-ingressgateway-sds created
+Waiting for deployment "istio-ingressgateway" rollout to finish: 0 of 1 updated replicas are available...
+deployment "istio-ingressgateway" successfully rolled out
+
+2026-10-06T10:06:00Z [STEP ] ===== Result =====
+client version: 1.31.1
+control plane version: 1.31.1
+data plane version: 1.31.1 (1 proxies)
+NAME                    READY   STATUS    RESTARTS   AGE   IP           NODE              NOMINATED NODE   READINESS GATES
+istiod-f9d9c8db-sdvq9   1/1     Running   0          13s   10.244.1.2   fipsdemo-worker   <none>           <none>
+NAME                                        READY   STATUS    RESTARTS   AGE   IP           NODE               NOMINATED NODE   READINESS GATES
+pod/istio-ingressgateway-85f8c79f6f-25xrm   1/1     Running   0          5s    10.244.2.2   fipsdemo-worker2   <none>           <none>
+
+NAME                           TYPE       CLUSTER-IP   EXTERNAL-IP   PORT(S)         AGE   SELECTOR
+service/istio-ingressgateway   NodePort   10.96.53.0   <none>        443:30443/TCP   5s    istio=ingressgateway
+2026-10-06T10:06:00Z [INFO ] compliance policy on istiod right now: '' (empty = normal Istio)
+2026-10-06T10:06:00Z [ OK  ] install-istio finished

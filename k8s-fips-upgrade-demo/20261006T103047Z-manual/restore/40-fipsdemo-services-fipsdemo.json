@@ -1,0 +1,32 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "labels": {
+      "app": "fipsdemo",
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "fipsdemo",
+    "namespace": "fipsdemo"
+  },
+  "spec": {
+    "internalTrafficPolicy": "Cluster",
+    "ipFamilies": [
+      "IPv4"
+    ],
+    "ipFamilyPolicy": "SingleStack",
+    "ports": [
+      {
+        "name": "http",
+        "port": 80,
+        "protocol": "TCP",
+        "targetPort": 8080
+      }
+    ],
+    "selector": {
+      "app": "fipsdemo"
+    },
+    "sessionAffinity": "None",
+    "type": "ClusterIP"
+  }
+}

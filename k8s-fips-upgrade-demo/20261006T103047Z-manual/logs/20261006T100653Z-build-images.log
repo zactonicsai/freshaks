@@ -1,0 +1,104 @@
+2026-10-06T10:06:53Z [INFO ] build-images started. Log file: /Users/zach/freshmart-aks-oidc/k8s-fips-upgrade-demo/logs/20261006T100653Z-build-images.log
+
+2026-10-06T10:06:53Z [STEP ] ===== Build the nonfips image =====
+2026-10-06T10:06:53Z [INFO ] building fipsdemo-app:1.0-nonfips from app/Dockerfile.nonfips
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile.nonfips
+#1 transferring dockerfile: 1.18kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi9/openjdk-25-runtime:latest
+#2 ...
+
+#3 [internal] load metadata for registry.access.redhat.com/ubi9/openjdk-25:latest
+#3 DONE 0.8s
+
+#2 [internal] load metadata for registry.access.redhat.com/ubi9/openjdk-25-runtime:latest
+#2 DONE 1.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 44.89kB done
+#5 DONE 0.0s
+
+#6 [build 1/4] FROM registry.access.redhat.com/ubi9/openjdk-25:latest@sha256:68f712c440bccc81af8a1935dda4beff4fbed6466f4037f6d1437c0f455328bc
+#6 resolve registry.access.redhat.com/ubi9/openjdk-25:latest@sha256:68f712c440bccc81af8a1935dda4beff4fbed6466f4037f6d1437c0f455328bc done
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 0B / 134.32MB 0.2s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 0B / 38.80MB 0.2s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 11.53MB / 134.32MB 0.6s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 2.10MB / 38.80MB 0.5s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 20.97MB / 134.32MB 0.8s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 7.34MB / 38.80MB 0.6s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 14.68MB / 38.80MB 0.8s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 37.75MB / 134.32MB 1.1s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 23.07MB / 38.80MB 0.9s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 47.19MB / 134.32MB 1.2s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 27.26MB / 38.80MB 1.1s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 54.53MB / 134.32MB 1.4s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 29.36MB / 38.80MB 1.2s
+#6 sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 38.80MB / 38.80MB 1.4s done
+#6 extracting sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 68.16MB / 134.32MB 1.7s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 76.55MB / 134.32MB 1.8s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 85.98MB / 134.32MB 2.0s
+#6 extracting sha256:c4a06288431da1ec95e33c03db711ea6934555b175d76a8b962fdef1d7e06b50 0.6s done
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 94.37MB / 134.32MB 2.3s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 103.81MB / 134.32MB 2.4s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 113.25MB / 134.32MB 2.6s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 124.78MB / 134.32MB 2.9s
+#6 sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 134.32MB / 134.32MB 3.0s done
+#6 extracting sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705
+#6 ...
+
+#7 [stage-1 1/5] FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:latest@sha256:c8bcc76dfc2ccf122bb7e2b82db7ae9de99a5276e495bcde9efbfa938dd5e3f7
+#7 resolve registry.access.redhat.com/ubi9/openjdk-25-runtime:latest@sha256:c8bcc76dfc2ccf122bb7e2b82db7ae9de99a5276e495bcde9efbfa938dd5e3f7 done
+#7 sha256:550003b035afd4f87829874dc7882fc2e7e236bea9428415edc14ad351479375 110.75MB / 110.75MB 2.6s done
+#7 extracting sha256:550003b035afd4f87829874dc7882fc2e7e236bea9428415edc14ad351479375 1.6s done
+#7 DONE 4.2s
+
+#6 [build 1/4] FROM registry.access.redhat.com/ubi9/openjdk-25:latest@sha256:68f712c440bccc81af8a1935dda4beff4fbed6466f4037f6d1437c0f455328bc
+#6 extracting sha256:6bf6049bdb59d812d2d0400e7d55104486ad01365b7bf591c25a84e60e6c9705 1.6s done
+#6 DONE 4.7s
+
+#8 [build 2/4] WORKDIR /build
+#8 DONE 0.2s
+
+#9 [build 3/4] COPY src/ src/
+#9 DONE 0.0s
+
+#10 [build 4/4] RUN mkdir classes && "/usr/lib/jvm/java-25/bin/javac" -d classes src/demo/*.java
+#10 DONE 0.8s
+
+#11 [stage-1 2/5] COPY --from=build /build/classes/ /opt/app/classes/
+#11 DONE 0.0s
+
+#12 [stage-1 3/5] COPY web/ /opt/app/web/
+#12 DONE 0.0s
+
+#13 [stage-1 4/5] COPY run.sh /opt/app/run.sh
+#13 DONE 0.0s
+
+#14 [stage-1 5/5] RUN chmod 0555 /opt/app/run.sh && chmod -R a+rX /opt/app
+#14 DONE 0.1s
+
+#15 exporting to image
+#15 exporting layers 0.0s done
+#15 exporting manifest sha256:2ed9543262746e083f53d5f61c66627fb9fc1554bf069b704ad538ba7e91b572 done
+#15 exporting config sha256:a3833053e467732848e0bf2822d24c31637f19388eb79683d14e1cc087f2afec done
+#15 exporting attestation manifest sha256:9e0cfaccdfb70d55f45bb6a3d5cffd37d72e19f8e97af2294a74875f40d17658 done
+#15 exporting manifest list sha256:1a000ad097687c8ba1c58edf6e88050cbb07cb5a6b882934f2d3fa635c51d8cd done
+#15 naming to docker.io/library/fipsdemo-app:1.0-nonfips done
+#15 unpacking to docker.io/library/fipsdemo-app:1.0-nonfips 0.0s done
+#15 DONE 0.1s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/cgn6q6mvpkqz52hn6lztsftcn
+2026-10-06T10:07:01Z [INFO ] image id: sha256:1a000ad097687c8ba1c58edf6e88050cbb07cb5a6b882934f2d3fa635c51d8cd
+Image: "fipsdemo-app:1.0-nonfips" with ID "sha256:1a000ad097687c8ba1c58edf6e88050cbb07cb5a6b882934f2d3fa635c51d8cd" not yet present on node "fipsdemo-worker", loading...
+Image: "fipsdemo-app:1.0-nonfips" with ID "sha256:1a000ad097687c8ba1c58edf6e88050cbb07cb5a6b882934f2d3fa635c51d8cd" not yet present on node "fipsdemo-control-plane", loading...
+Image: "fipsdemo-app:1.0-nonfips" with ID "sha256:1a000ad097687c8ba1c58edf6e88050cbb07cb5a6b882934f2d3fa635c51d8cd" not yet present on node "fipsdemo-worker2", loading...
+2026-10-06T10:07:10Z [ OK  ] fipsdemo-app:1.0-nonfips is loaded into every node of cluster fipsdemo
+2026-10-06T10:07:10Z [ OK  ] build-images finished

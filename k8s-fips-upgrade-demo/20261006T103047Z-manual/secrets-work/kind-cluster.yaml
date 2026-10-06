@@ -1,0 +1,16 @@
+# kind = "Kubernetes IN Docker": every node below is one Docker container.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:            # https://app.fipsdemo.test:8443 on your computer -> the Istio gateway
+  - containerPort: 30443
+    hostPort: 8443
+    listenAddress: "127.0.0.1"
+    protocol: TCP
+- role: worker                  # "blue" pool: the old, non-FIPS nodes
+  labels:
+    nodepool: "blue"
+- role: worker                  # "green" pool: the new nodes (FIPS kernel in a real cluster)
+  labels:
+    nodepool: "green"

@@ -1,0 +1,14 @@
+{
+  "apiVersion": "v1",
+  "data": {
+    "krb5.conf": "# Kerberos client settings for the NON-FIPS (blue) pods.\n# \"enctypes\" are the kinds of keys used to lock Kerberos tickets.\n# This old-style setup asks for the SHA-1 based AES keys first.\n[libdefaults]\n  default_realm = FIPSDEMO.TEST\n  dns_lookup_kdc = false\n  dns_lookup_realm = false\n  rdns = false\n  # 1 = always use TCP. Istio's proxy only handles TCP, so this keeps Kerberos inside the proxy.\n  udp_preference_limit = 1\n  forwardable = false\n  default_tkt_enctypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96\n  default_tgs_enctypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96\n  permitted_enctypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 aes256-cts-hmac-sha384-192 aes128-cts-hmac-sha256-128\n\n[realms]\n  FIPSDEMO.TEST = {\n    kdc = ipa.fipsdemo.test:88\n  }\n\n[domain_realm]\n  .fipsdemo.test = FIPSDEMO.TEST\n  fipsdemo.test = FIPSDEMO.TEST\n"
+  },
+  "kind": "ConfigMap",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "fipsdemo-krb5-legacy",
+    "namespace": "fipsdemo"
+  }
+}

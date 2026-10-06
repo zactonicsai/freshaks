@@ -1,0 +1,261 @@
+{
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {
+                "annotations": {
+                    "deployment.kubernetes.io/revision": "1",
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{\"kubernetes.io/change-cause\":\"v1 non-FIPS first deploy\"},\"labels\":{\"app\":\"fipsdemo\",\"app.kubernetes.io/part-of\":\"fipsdemo\",\"track\":\"blue\"},\"name\":\"fipsdemo-blue\",\"namespace\":\"fipsdemo\"},\"spec\":{\"replicas\":2,\"revisionHistoryLimit\":5,\"selector\":{\"matchLabels\":{\"app\":\"fipsdemo\",\"track\":\"blue\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"fipsdemo\",\"app.kubernetes.io/part-of\":\"fipsdemo\",\"sidecar.istio.io/inject\":\"true\",\"track\":\"blue\",\"version\":\"1.0-nonfips\"}},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"KRB_REALM\",\"value\":\"FIPSDEMO.TEST\"},{\"name\":\"KRB_SERVICE_PRINCIPAL\",\"value\":\"HTTP/app.fipsdemo.test@FIPSDEMO.TEST\"},{\"name\":\"KRB5_CONF\",\"value\":\"/etc/fipsdemo/krb5/krb5.conf\"},{\"name\":\"KRB_KEYTAB\",\"value\":\"/etc/fipsdemo/keytab/app.keytab\"},{\"name\":\"SESSION_KEY_FILE\",\"value\":\"/etc/fipsdemo/session/session.key\"},{\"name\":\"POD_NAME\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.name\"}}},{\"name\":\"NODE_NAME\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"spec.nodeName\"}}}],\"image\":\"fipsdemo-app:1.0-nonfips\",\"imagePullPolicy\":\"IfNotPresent\",\"livenessProbe\":{\"httpGet\":{\"path\":\"/healthz\",\"port\":8080},\"initialDelaySeconds\":15,\"periodSeconds\":10},\"name\":\"app\",\"ports\":[{\"containerPort\":8080,\"name\":\"http\"}],\"readinessProbe\":{\"failureThreshold\":3,\"httpGet\":{\"path\":\"/healthz\",\"port\":8080},\"periodSeconds\":5},\"resources\":{\"limits\":{\"memory\":\"384Mi\"},\"requests\":{\"cpu\":\"50m\",\"memory\":\"128Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"readOnlyRootFilesystem\":true},\"volumeMounts\":[{\"mountPath\":\"/etc/fipsdemo/krb5\",\"name\":\"krb5\",\"readOnly\":true},{\"mountPath\":\"/etc/fipsdemo/keytab\",\"name\":\"keytab\",\"readOnly\":true},{\"mountPath\":\"/etc/fipsdemo/session\",\"name\":\"session\",\"readOnly\":true},{\"mountPath\":\"/tmp\",\"name\":\"tmp\"}]}],\"hostAliases\":[{\"hostnames\":[\"ipa.fipsdemo.test\"],\"ip\":\"172.18.0.8\"}],\"nodeSelector\":{\"nodepool\":\"blue\"},\"securityContext\":{\"fsGroup\":185,\"runAsNonRoot\":true,\"runAsUser\":185,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"fipsdemo\",\"terminationGracePeriodSeconds\":20,\"volumes\":[{\"configMap\":{\"name\":\"fipsdemo-krb5-legacy\"},\"name\":\"krb5\"},{\"name\":\"keytab\",\"secret\":{\"defaultMode\":288,\"secretName\":\"fipsdemo-keytab-v1\"}},{\"name\":\"session\",\"secret\":{\"defaultMode\":288,\"secretName\":\"fipsdemo-session-v1\"}},{\"emptyDir\":{\"medium\":\"Memory\",\"sizeLimit\":\"32Mi\"},\"name\":\"tmp\"}]}}}}\n",
+                    "kubernetes.io/change-cause": "v1 non-FIPS first deploy"
+                },
+                "creationTimestamp": "2026-10-06T10:08:24Z",
+                "generation": 1,
+                "labels": {
+                    "app": "fipsdemo",
+                    "app.kubernetes.io/part-of": "fipsdemo",
+                    "track": "blue"
+                },
+                "name": "fipsdemo-blue",
+                "namespace": "fipsdemo",
+                "resourceVersion": "3741",
+                "uid": "688f5a1c-d07f-48e4-b939-59628502766a"
+            },
+            "spec": {
+                "progressDeadlineSeconds": 600,
+                "replicas": 2,
+                "revisionHistoryLimit": 5,
+                "selector": {
+                    "matchLabels": {
+                        "app": "fipsdemo",
+                        "track": "blue"
+                    }
+                },
+                "strategy": {
+                    "rollingUpdate": {
+                        "maxSurge": 1,
+                        "maxUnavailable": 0
+                    },
+                    "type": "RollingUpdate"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "app": "fipsdemo",
+                            "app.kubernetes.io/part-of": "fipsdemo",
+                            "sidecar.istio.io/inject": "true",
+                            "track": "blue",
+                            "version": "1.0-nonfips"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "env": [
+                                    {
+                                        "name": "KRB_REALM",
+                                        "value": "FIPSDEMO.TEST"
+                                    },
+                                    {
+                                        "name": "KRB_SERVICE_PRINCIPAL",
+                                        "value": "HTTP/app.fipsdemo.test@FIPSDEMO.TEST"
+                                    },
+                                    {
+                                        "name": "KRB5_CONF",
+                                        "value": "/etc/fipsdemo/krb5/krb5.conf"
+                                    },
+                                    {
+                                        "name": "KRB_KEYTAB",
+                                        "value": "/etc/fipsdemo/keytab/app.keytab"
+                                    },
+                                    {
+                                        "name": "SESSION_KEY_FILE",
+                                        "value": "/etc/fipsdemo/session/session.key"
+                                    },
+                                    {
+                                        "name": "POD_NAME",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "metadata.name"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "NODE_NAME",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "apiVersion": "v1",
+                                                "fieldPath": "spec.nodeName"
+                                            }
+                                        }
+                                    }
+                                ],
+                                "image": "fipsdemo-app:1.0-nonfips",
+                                "imagePullPolicy": "IfNotPresent",
+                                "livenessProbe": {
+                                    "failureThreshold": 3,
+                                    "httpGet": {
+                                        "path": "/healthz",
+                                        "port": 8080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "initialDelaySeconds": 15,
+                                    "periodSeconds": 10,
+                                    "successThreshold": 1,
+                                    "timeoutSeconds": 1
+                                },
+                                "name": "app",
+                                "ports": [
+                                    {
+                                        "containerPort": 8080,
+                                        "name": "http",
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "readinessProbe": {
+                                    "failureThreshold": 3,
+                                    "httpGet": {
+                                        "path": "/healthz",
+                                        "port": 8080,
+                                        "scheme": "HTTP"
+                                    },
+                                    "periodSeconds": 5,
+                                    "successThreshold": 1,
+                                    "timeoutSeconds": 1
+                                },
+                                "resources": {
+                                    "limits": {
+                                        "memory": "384Mi"
+                                    },
+                                    "requests": {
+                                        "cpu": "50m",
+                                        "memory": "128Mi"
+                                    }
+                                },
+                                "securityContext": {
+                                    "allowPrivilegeEscalation": false,
+                                    "capabilities": {
+                                        "drop": [
+                                            "ALL"
+                                        ]
+                                    },
+                                    "readOnlyRootFilesystem": true
+                                },
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File",
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/etc/fipsdemo/krb5",
+                                        "name": "krb5",
+                                        "readOnly": true
+                                    },
+                                    {
+                                        "mountPath": "/etc/fipsdemo/keytab",
+                                        "name": "keytab",
+                                        "readOnly": true
+                                    },
+                                    {
+                                        "mountPath": "/etc/fipsdemo/session",
+                                        "name": "session",
+                                        "readOnly": true
+                                    },
+                                    {
+                                        "mountPath": "/tmp",
+                                        "name": "tmp"
+                                    }
+                                ]
+                            }
+                        ],
+                        "dnsPolicy": "ClusterFirst",
+                        "hostAliases": [
+                            {
+                                "hostnames": [
+                                    "ipa.fipsdemo.test"
+                                ],
+                                "ip": "172.18.0.8"
+                            }
+                        ],
+                        "nodeSelector": {
+                            "nodepool": "blue"
+                        },
+                        "restartPolicy": "Always",
+                        "schedulerName": "default-scheduler",
+                        "securityContext": {
+                            "fsGroup": 185,
+                            "runAsNonRoot": true,
+                            "runAsUser": 185,
+                            "seccompProfile": {
+                                "type": "RuntimeDefault"
+                            }
+                        },
+                        "serviceAccount": "fipsdemo",
+                        "serviceAccountName": "fipsdemo",
+                        "terminationGracePeriodSeconds": 20,
+                        "volumes": [
+                            {
+                                "configMap": {
+                                    "defaultMode": 420,
+                                    "name": "fipsdemo-krb5-legacy"
+                                },
+                                "name": "krb5"
+                            },
+                            {
+                                "name": "keytab",
+                                "secret": {
+                                    "defaultMode": 288,
+                                    "secretName": "fipsdemo-keytab-v1"
+                                }
+                            },
+                            {
+                                "name": "session",
+                                "secret": {
+                                    "defaultMode": 288,
+                                    "secretName": "fipsdemo-session-v1"
+                                }
+                            },
+                            {
+                                "emptyDir": {
+                                    "medium": "Memory",
+                                    "sizeLimit": "32Mi"
+                                },
+                                "name": "tmp"
+                            }
+                        ]
+                    }
+                }
+            },
+            "status": {
+                "availableReplicas": 2,
+                "conditions": [
+                    {
+                        "lastTransitionTime": "2026-10-06T10:08:24Z",
+                        "lastUpdateTime": "2026-10-06T10:08:30Z",
+                        "message": "ReplicaSet \"fipsdemo-blue-86c44c8fbf\" has successfully progressed.",
+                        "reason": "NewReplicaSetAvailable",
+                        "status": "True",
+                        "type": "Progressing"
+                    },
+                    {
+                        "lastTransitionTime": "2026-10-06T10:26:31Z",
+                        "lastUpdateTime": "2026-10-06T10:26:31Z",
+                        "message": "Deployment has minimum availability.",
+                        "reason": "MinimumReplicasAvailable",
+                        "status": "True",
+                        "type": "Available"
+                    }
+                ],
+                "observedGeneration": 1,
+                "readyReplicas": 2,
+                "replicas": 2,
+                "terminatingReplicas": 0,
+                "updatedReplicas": 2
+            }
+        }
+    ],
+    "kind": "List",
+    "metadata": {
+        "resourceVersion": ""
+    }
+}

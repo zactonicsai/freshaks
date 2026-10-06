@@ -1,0 +1,33 @@
+{
+  "apiVersion": "networking.istio.io/v1",
+  "kind": "DestinationRule",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/part-of": "fipsdemo"
+    },
+    "name": "fipsdemo",
+    "namespace": "fipsdemo"
+  },
+  "spec": {
+    "host": "fipsdemo.fipsdemo.svc.cluster.local",
+    "subsets": [
+      {
+        "labels": {
+          "track": "blue"
+        },
+        "name": "blue"
+      },
+      {
+        "labels": {
+          "track": "green"
+        },
+        "name": "green"
+      }
+    ],
+    "trafficPolicy": {
+      "tls": {
+        "mode": "ISTIO_MUTUAL"
+      }
+    }
+  }
+}

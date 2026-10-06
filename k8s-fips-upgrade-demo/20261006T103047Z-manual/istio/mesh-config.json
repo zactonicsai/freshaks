@@ -1,0 +1,27 @@
+{
+  "apiVersion": "v1",
+  "data": {
+    "mesh": "accessLogFile: /dev/stdout\ndefaultConfig:\n  discoveryAddress: istiod.istio-system.svc:15012\n  holdApplicationUntilProxyStarts: true\ndefaultProviders:\n  metrics:\n  - prometheus\nenableAutoMtls: true\nenablePrometheusMerge: true\nrootNamespace: istio-system\ntrustDomain: cluster.local",
+    "meshNetworks": "networks: {}"
+  },
+  "kind": "ConfigMap",
+  "metadata": {
+    "labels": {
+      "app.kubernetes.io/instance": "istio",
+      "app.kubernetes.io/managed-by": "Helm",
+      "app.kubernetes.io/name": "istiod",
+      "app.kubernetes.io/part-of": "istio",
+      "app.kubernetes.io/version": "1.31.1",
+      "helm.sh/chart": "istiod-1.31.1",
+      "install.operator.istio.io/owning-resource": "fipsdemo",
+      "install.operator.istio.io/owning-resource-namespace": "istio-system",
+      "istio.io/rev": "default",
+      "operator.istio.io/component": "Pilot",
+      "operator.istio.io/managed": "Reconcile",
+      "operator.istio.io/version": "1.31.1",
+      "release": "istio"
+    },
+    "name": "istio",
+    "namespace": "istio-system"
+  }
+}

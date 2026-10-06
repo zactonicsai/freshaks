@@ -1,0 +1,2 @@
+fipsdemo-blue-86c44c8fbf-d8sdx	fipsdemo-worker	fipsdemo-app:1.0-nonfips 
+fipsdemo-blue-86c44c8fbf-qr7n6	fipsdemo-worker	fipsdemo-app:1.0-nonfips 

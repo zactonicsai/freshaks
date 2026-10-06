@@ -1,0 +1,29 @@
+2026-10-06T09:56:13Z START check-tools args=[] user=zach context=kind-fipsdemo log=20261006T095613Z-check-tools.log
+2026-10-06T09:56:13Z END   check-tools exit=1
+2026-10-06T09:58:01Z START check-tools args=[] user=zach context=kind-fipsdemo log=20261006T095801Z-check-tools.log
+2026-10-06T09:58:04Z END   check-tools exit=0
+2026-10-06T09:58:41Z START create-cluster args=[] user=zach context=kind-fipsdemo log=20261006T095841Z-create-cluster.log
+2026-10-06T09:59:31Z END   create-cluster exit=0
+2026-10-06T10:01:36Z START start-ipa args=[] user=zach context=kind-fipsdemo log=20261006T100136Z-start-ipa.log
+2026-10-06T10:05:26Z END   start-ipa exit=0
+2026-10-06T10:05:46Z START install-istio args=[] user=zach context=kind-fipsdemo log=20261006T100546Z-install-istio.log
+2026-10-06T10:06:00Z END   install-istio exit=0
+2026-10-06T10:06:53Z START build-images args=[] user=zach context=kind-fipsdemo log=20261006T100653Z-build-images.log
+2026-10-06T10:07:10Z END   build-images exit=0
+2026-10-06T10:08:23Z START deploy-nonfips args=[] user=zach context=kind-fipsdemo log=20261006T100823Z-deploy-nonfips.log
+2026-10-06T10:08:36Z START test args=[nonfips] user=zach context=kind-fipsdemo log=20261006T100823Z-deploy-nonfips.log
+2026-10-06T10:08:46Z END   test exit=0
+2026-10-06T10:08:46Z END   deploy-nonfips exit=0
+2026-10-06T10:23:49Z START expose-localhost args=[] user=zach context=kind-fipsdemo log=20261006T102349Z-expose-localhost.log
+2026-10-06T10:25:42Z END   expose-localhost exit=0
+2026-10-06T10:26:38Z START expose-localhost args=[gateway] user=zach context=kind-fipsdemo log=20261006T102638Z-expose-localhost.log
+2026-10-06T10:27:10Z END   expose-localhost exit=1
+2026-10-06T10:27:23Z START expose-localhost args=[gateway] user=zach context=kind-fipsdemo log=20261006T102723Z-expose-localhost.log
+2026-10-06T10:27:58Z END   expose-localhost exit=1
+2026-10-06T10:29:19Z START expose-localhost args=[gateway 8443] user=zach context=kind-fipsdemo log=20261006T102919Z-expose-localhost.log
+2026-10-06T10:29:19Z END   expose-localhost exit=1
+2026-10-06T10:29:46Z START expose-localhost args=[gateway 80] user=zach context=kind-fipsdemo log=20261006T102946Z-expose-localhost.log
+2026-10-06T10:29:46Z END   expose-localhost exit=1
+2026-10-06T10:29:52Z START expose-localhost args=[] user=zach context=kind-fipsdemo log=20261006T102952Z-expose-localhost.log
+2026-10-06T10:30:40Z END   expose-localhost exit=0
+2026-10-06T10:30:47Z START save-state args=[] user=zach context=kind-fipsdemo log=20261006T103047Z-save-state.log

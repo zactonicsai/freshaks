@@ -1,0 +1,24 @@
+# Kerberos client settings for the FIPS (green) pods.
+# Only the two SHA-2 based AES key types are allowed. This is the same list that the
+# RHEL 9 "FIPS" crypto policy uses (/usr/share/crypto-policies/FIPS/krb5.txt).
+[libdefaults]
+  default_realm = __REALM__
+  dns_lookup_kdc = false
+  dns_lookup_realm = false
+  rdns = false
+  # 1 = always use TCP. Istio's proxy only handles TCP, so this keeps Kerberos inside the proxy.
+  udp_preference_limit = 1
+  forwardable = false
+  allow_weak_crypto = false
+  default_tkt_enctypes = aes256-cts-hmac-sha384-192 aes128-cts-hmac-sha256-128
+  default_tgs_enctypes = aes256-cts-hmac-sha384-192 aes128-cts-hmac-sha256-128
+  permitted_enctypes = aes256-cts-hmac-sha384-192 aes128-cts-hmac-sha256-128
+
+[realms]
+  __REALM__ = {
+    kdc = __KDC_ADDR__
+  }
+
+[domain_realm]
+  .__DOMAIN__ = __REALM__
+  __DOMAIN__ = __REALM__

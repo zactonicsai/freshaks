@@ -1,0 +1,62 @@
+# The front door. HTTPS ends at the gateway, which shows a certificate issued by FreeIPA's CA.
+# OPTIONAL_MUTUAL = visitors MAY show a client certificate; if they do, it must come from FreeIPA's CA.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: fipsdemo-gateway
+  namespace: __INGRESS_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port: {number: 443, name: https, protocol: HTTPS}
+    hosts: ["__APP_HOSTNAME__"]
+    tls:
+      mode: OPTIONAL_MUTUAL
+      credentialName: __TLS_SECRET__
+      minProtocolVersion: TLSV1_2
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: fipsdemo
+  namespace: __APP_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+spec:
+  host: fipsdemo.__APP_NS__.svc.cluster.local
+  trafficPolicy:
+    tls: {mode: ISTIO_MUTUAL}          # gateway -> pod is mutual TLS with mesh certificates
+  subsets:
+  - name: blue
+    labels: {track: blue}
+  - name: green
+    labels: {track: green}
+---
+# The traffic switch. The last rule ("live") decides where normal visitors go.
+# The two rules above it let a tester peek at one side with a secret header.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: fipsdemo
+  namespace: __APP_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+  annotations:
+    fipsdemo/live-track: __LIVE_TRACK__
+spec:
+  hosts: ["__APP_HOSTNAME__"]
+  gateways: ["__INGRESS_NS__/fipsdemo-gateway"]
+  http:
+  - name: preview-green
+    match:
+    - headers: {x-fipsdemo-track: {exact: green}}
+    route:
+    - destination: {host: fipsdemo.__APP_NS__.svc.cluster.local, subset: green, port: {number: 80}}
+  - name: preview-blue
+    match:
+    - headers: {x-fipsdemo-track: {exact: blue}}
+    route:
+    - destination: {host: fipsdemo.__APP_NS__.svc.cluster.local, subset: blue, port: {number: 80}}
+  - name: live
+    route:
+    - destination: {host: fipsdemo.__APP_NS__.svc.cluster.local, subset: __LIVE_TRACK__, port: {number: 80}}

@@ -1,0 +1,33 @@
+tamper test: change one byte in a copy and expect the restore to refuse it
+################ STAGE 40-restore refuses a changed snapshot: scripts/40-restore-state.sh /tmp/moved-snapshot/tampered --in-place --no-test ################
+2026-10-06T09:12:48Z [ERROR] changed or damaged: ./restore/40-fipsdemo-services-fipsdemo.json
+2026-10-06T09:12:48Z [ERROR] the snapshot failed its checksum test. Not using it.
+wipe test: delete both namespaces, then rebuild them from the zip using the project copy INSIDE the zip
+################ STAGE 40-restore from the carried-away zip (project copy inside the snapshot): /tmp/moved-snapshot/20261006T091208Z-post-finalize/project/scripts/40-restore-state.sh /tmp/moved-snapsh
+2026-10-06T09:13:15Z [ OK  ] all 126 files match their SHA-256 checksums
+2026-10-06T09:13:21Z [ OK  ] state '20261006T091208Z-post-finalize' is back. Live side: 'green'
+2026-10-06T09:13:28Z [PASS ] public page opens without login
+2026-10-06T09:13:28Z [PASS ] secure page without login -> sent to the login page (HTTP 303)
+2026-10-06T09:13:29Z [PASS ] wrong password is refused (HTTP 401)
+2026-10-06T09:13:29Z [PASS ] FreeIPA Kerberos login of 'alice' works
+2026-10-06T09:13:30Z [PASS ] secure page greets alice@FIPSDEMO.TEST
+2026-10-06T09:13:30Z [PASS ] Kerberos ticket key type is aes256-cts-hmac-sha384-192
+2026-10-06T09:13:30Z [INFO ] status: {"app":"fipsdemo-app","version":"2.0-fips","cryptoProfile":"fips","selfTest":"passed","sessionMac":"HmacSHA256","kernelFipsEnabled":"unavailable","osCryptoPolicy":
+2026-10-06T09:13:30Z [PASS ] app crypto profile is 'fips'
+2026-10-06T09:13:30Z [PASS ] login cookies are signed with HmacSHA256
+2026-10-06T09:13:30Z [PASS ] start-up crypto self-test passed
+2026-10-06T09:13:30Z [PASS ] Linux crypto policy inside the pod is FIPS
+2026-10-06T09:13:30Z [PASS ] the pod's keytab holds SHA-2 keys only
+2026-10-06T09:13:30Z [WARN ] PRACTICE MODE: node kernel is not in FIPS mode. Everything else is set up the FIPS way, but this is not real FIPS.
+2026-10-06T09:13:30Z [PASS ] deployment fipsdemo-green has 1 ready pod(s)
+2026-10-06T09:13:30Z [PASS ] all green pods run on nodes labelled sandbox/green=yes
+2026-10-06T09:13:30Z [STEP ] ===== RESULT for side 'green' (fips): 13 passed, 0 failed, 1 warnings =====
+################ STAGE 60-collect-logs: scripts/60-collect-logs.sh ################
+2026-10-06T09:13:31Z [ OK  ] everything is in /home/claude/k8s-fips-upgrade-demo/logs/collected-20261006T091330Z (4 files)
+================ E2E SUMMARY ================
+PASS  40-restore refuses a changed snapshot (exit 1, 0s)
+PASS    check: namespaces are really gone
+PASS  40-restore from the carried-away zip (project copy inside the snapshot) (exit 0, 15s)
+PASS    check: live side is green after restore
+PASS  60-collect-logs (exit 0, 1s)
+STAGE-EXIT=0

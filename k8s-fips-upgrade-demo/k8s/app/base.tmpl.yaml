@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: __APP_NS__
+  labels:
+    istio-injection: enabled            # every pod here gets an Istio sidecar proxy
+    app.kubernetes.io/part-of: fipsdemo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fipsdemo
+  namespace: __APP_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fipsdemo
+  namespace: __APP_NS__
+  labels: {app: fipsdemo, app.kubernetes.io/part-of: fipsdemo}
+spec:
+  selector:
+    app: fipsdemo                       # blue AND green pods; Istio decides who gets the visitors
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+---
+# Mutual TLS inside the mesh: plain-text traffic to the app pods is refused.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: __APP_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+spec:
+  mtls:
+    mode: STRICT
+---
+# Only the ingress gateway (proven by its mesh certificate) may call the app.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: fipsdemo-only-from-gateway
+  namespace: __APP_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+spec:
+  selector:
+    matchLabels:
+      app: fipsdemo
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/__INGRESS_NS__/sa/istio-ingressgateway"]
+---
+# The way OUT is locked: pods here may only reach what the mesh knows about (REGISTRY_ONLY).
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: default
+  namespace: __APP_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+spec:
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY
+  egress:
+  - hosts:
+    - "./*"
+    - "istio-system/*"
+---
+# ...and this is the one outside address we allow: the Kerberos port of the FreeIPA server.
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: freeipa
+  namespace: __APP_NS__
+  labels: {app.kubernetes.io/part-of: fipsdemo}
+spec:
+  hosts:
+  - __IPA_HOSTNAME__
+  addresses:
+  - __IPA_IP__/32
+  exportTo: ["."]
+  location: MESH_EXTERNAL
+  resolution: STATIC
+  ports:
+  - number: 88
+    name: tcp-kerberos
+    protocol: TCP
+  endpoints:
+  - address: __IPA_IP__

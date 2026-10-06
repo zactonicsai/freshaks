@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+#  NON-FIPS image ("blue", version 1.0)
+#  Red Hat UBI 9 + OpenJDK 25, Linux crypto policy left at DEFAULT.
+# ---------------------------------------------------------------------------
+ARG BUILDER_IMAGE=registry.access.redhat.com/ubi9/openjdk-25
+ARG RUNTIME_IMAGE=registry.access.redhat.com/ubi9/openjdk-25-runtime
+
+# Stage 1: compile. The app uses only the JDK itself, so no Maven and no downloads.
+FROM ${BUILDER_IMAGE} AS build
+USER root
+WORKDIR /build
+COPY src/ src/
+RUN mkdir classes && "${JAVA_HOME:-/usr/lib/jvm/java-25}/bin/javac" -d classes src/demo/*.java
+
+# Stage 2: small runtime image (no compiler inside).
+FROM ${RUNTIME_IMAGE}
+ARG APP_VERSION=1.0-nonfips
+USER root
+COPY --from=build /build/classes/ /opt/app/classes/
+COPY web/ /opt/app/web/
+COPY run.sh /opt/app/run.sh
+RUN chmod 0555 /opt/app/run.sh && chmod -R a+rX /opt/app
+# The image decides the crypto profile, so "which image runs" always tells you "which mode".
+ENV APP_CRYPTO_PROFILE=legacy \
+    APP_VERSION=${APP_VERSION}
+USER 185
+EXPOSE 8080
+ENTRYPOINT ["/opt/app/run.sh"]

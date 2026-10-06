@@ -171,6 +171,20 @@ Or use the command line:
 curl --cacert work/ipa/ca.crt --resolve app.fipsdemo.test:8443:127.0.0.1 https://app.fipsdemo.test:8443/status
 ```
 
+### Three ways to reach the app from your own computer (localhost)
+
+| Way | Command | Address | Goes through |
+|---|---|---|---|
+| **Built in** | nothing to do, the cluster was made with it | `https://app.fipsdemo.test:8443` | gateway + mesh (the real path) |
+| **Simple localhost** | `scripts/07-expose-localhost.sh` | `http://localhost:8080` | straight into one app pod |
+| **Gateway on another port** | `scripts/07-expose-localhost.sh gateway 9443` | `https://app.fipsdemo.test:9443` | gateway + mesh |
+
+The **simple localhost** way needs no hosts file and no certificate, so it is the quickest look at the pages. But it skips the gateway and the mesh: no TLS, and the certificate page (`/mtls`) will always say no. It runs until you press Ctrl+C. Pick a side with `SIDE=blue` or `SIDE=green`, and another port with a second word, for example `scripts/07-expose-localhost.sh app 9090`.
+
+Why can't the gateway simply answer to the name `localhost`? Because its certificate is made out to `app.fipsdemo.test`. A certificate is an ID card with a name on it, and the name has to match the address you typed.
+
+All three listen only on `127.0.0.1`, which means only your own computer can reach them. `LISTEN_ADDRESS=0.0.0.0` opens the script's port to your network; do that only on a network you trust.
+
 ## Step 6 — Save the current state
 
 ```bash
@@ -487,6 +501,7 @@ k8s-fips-upgrade-demo/
 | `03-install-istio.sh` | installs Istio and the gateway |
 | `04-build-images.sh [nonfips\|fips\|all]` | builds and loads the app image(s) |
 | `05-deploy-nonfips.sh` | deploys blue (non-FIPS) and tests it |
+| `07-expose-localhost.sh [app\|gateway] [PORT]` | opens a port on localhost that leads to the app (or to the gateway) |
 | `06-test.sh [nonfips\|fips\|auto]` | the tests. `TRACK=green` peeks at one side. `TEST_MODE=direct` skips the mesh |
 | `10-save-state.sh` | snapshot + zip + checksums |
 | `20-upgrade-to-fips.sh` | the safe upgrade with gates and automatic rollback |

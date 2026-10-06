@@ -69,6 +69,7 @@ Because no gateway ran, the tests used `TEST_MODE=direct` (straight to the pod).
 | Wipe and restore | both namespaces deleted, then `40-restore-state.sh` run **from the project copy inside the zip** | pass in 15 s; green: 13 pass, 0 fail, 1 warning |
 | Encrypted zip | `10-save-state.sh --encrypt`, restore from the `.zip.enc` | pass; a wrong passphrase is refused |
 | Collect logs | `60-collect-logs.sh` | pass |
+| Expose on localhost | `07-expose-localhost.sh app` | pass: health, public page and status answered on `http://localhost:<port>`. The `gateway` mode was **not** run (no gateway on the test box) |
 
 The times are from a one-node box with one small pod per side. They show that the steps are quick; they are not a benchmark.
 

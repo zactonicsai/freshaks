@@ -19,6 +19,7 @@ scripts/02-start-ipa.sh              # FreeIPA + demo user + keytab + certificat
 scripts/03-install-istio.sh          # Istio + gateway
 scripts/04-build-images.sh nonfips   # app image 1.0
 scripts/05-deploy-nonfips.sh         # deploy NON-FIPS (blue) and test
+scripts/07-expose-localhost.sh       # optional: http://localhost:8080 straight to the app (Ctrl+C stops)
 scripts/10-save-state.sh             # snapshot + zip
 scripts/20-upgrade-to-fips.sh        # safe upgrade to FIPS / SHA-2 (green), undoes itself if a check fails
 scripts/30-rollback.sh               # back to blue in seconds   (--full = everything back)

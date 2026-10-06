@@ -15,3 +15,4 @@ tests/go-client/go-client
 gitopschatg/seed/app-repo/.gradle/
 
 k8s-debug-tool/k8s_doctor.egg-info/
+k8s-fips-upgrade-demo/istio-1.31.1/

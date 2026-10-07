@@ -1,0 +1,73 @@
+# ---------------------------------------------------------------------------
+# The front door. Traffic from the internet enters here.
+# ---------------------------------------------------------------------------
+
+# Gateway = "open these ports, for these website names, with this certificate".
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: demo-gateway
+  namespace: demo
+spec:
+  # Use the ingress gateway that the AKS Istio add-on runs for us.
+  selector:
+    istio: aks-istio-ingressgateway-external
+  servers:
+    # https (port 443). The gateway unlocks the encryption here.
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        # A Secret named "demo-tls" in the aks-istio-ingress namespace.
+        credentialName: demo-tls
+        minProtocolVersion: TLSV1_2
+      hosts:
+        - "__APP_HOST__"
+        - "__KC_HOST__"
+    # http (port 80) only says "please use https instead".
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      tls:
+        httpsRedirect: true
+      hosts:
+        - "__APP_HOST__"
+        - "__KC_HOST__"
+---
+# VirtualService = a signpost. "Requests for this name go to that Service."
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: app
+  namespace: demo
+spec:
+  hosts:
+    - "__APP_HOST__"
+  gateways:
+    - demo-gateway
+  http:
+    - route:
+        - destination:
+            host: app.demo.svc.cluster.local
+            port:
+              number: 8080
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: keycloak
+  namespace: demo
+spec:
+  hosts:
+    - "__KC_HOST__"
+  gateways:
+    - demo-gateway
+  http:
+    - route:
+        - destination:
+            host: keycloak.demo.svc.cluster.local
+            port:
+              number: 8080

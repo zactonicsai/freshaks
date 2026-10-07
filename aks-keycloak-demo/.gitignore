@@ -1,0 +1,6 @@
+# Passwords made by create.sh. Never put these in git.
+.secrets.env
+# Filled-in copies of the templates (they contain passwords and keys).
+.rendered/
+app/target/
+.DS_Store

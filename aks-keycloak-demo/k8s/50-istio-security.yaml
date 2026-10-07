@@ -1,0 +1,100 @@
+# ---------------------------------------------------------------------------
+# The locks. This file is where "only the allowed IP may reach Keycloak" lives.
+# ---------------------------------------------------------------------------
+
+# LOCK 1 - at the front door (the Istio ingress gateway).
+# "If you are NOT the allowed IP, you may only ask for the app.
+#  Anything else (Keycloak!) is refused with 403."
+# It is written as "deny everything except the app" so that a new website name
+# added later is locked by default.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: keycloak-ip-allowlist
+  namespace: aks-istio-ingress
+spec:
+  selector:
+    matchLabels:
+      istio: aks-istio-ingressgateway-external
+  action: DENY
+  rules:
+    - from:
+        - source:
+            # notIpBlocks = "everyone who is NOT on this list"
+            notIpBlocks: ["__ALLOWED_CIDR__"]
+      to:
+        - operation:
+            notHosts: ["__APP_HOST__", "__APP_HOST__:*"]
+---
+# LOCK 2 - every pod in "demo" must speak mTLS.
+# mTLS = both sides show an ID card and the traffic is encrypted.
+# The sidecars do this by themselves. A pod WITHOUT a sidecar cannot get in.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: demo
+spec:
+  mtls:
+    mode: STRICT
+---
+# LOCK 3 - Keycloak's sidecar only lets in:
+#   - the ingress gateway (people coming through the front door), and
+#   - the Java app (to swap login codes for tokens).
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: keycloak-allow
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["aks-istio-ingress"]
+        - source:
+            principals: ["cluster.local/ns/demo/sa/app"]
+      to:
+        - operation:
+            ports: ["8080"]
+---
+# LOCK 4 - Postgres's sidecar only lets in Keycloak. Nobody else.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: postgres-allow
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/demo/sa/keycloak"]
+      to:
+        - operation:
+            ports: ["5432"]
+---
+# LOCK 5 - the Java app's sidecar only lets in the ingress gateway.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: app-allow
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: app
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["aks-istio-ingress"]
+      to:
+        - operation:
+            ports: ["8080"]

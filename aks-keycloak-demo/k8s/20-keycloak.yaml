@@ -1,0 +1,133 @@
+# ---------------------------------------------------------------------------
+# Keycloak = the login server. It shows the login page and hands out tokens.
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keycloak
+  namespace: demo
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: demo
+  labels:
+    app: keycloak
+spec:
+  selector:
+    app: keycloak
+  ports:
+    # The name "http" tells Istio this is web traffic.
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: demo
+spec:
+  replicas: 1
+  # Recreate = stop the old pod, then start the new one. Simple and safe when
+  # there is only one Keycloak.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+      annotations:
+        # Wait for the Istio sidecar to be ready BEFORE Keycloak starts.
+        # Without this, Keycloak may try to reach Postgres too early and crash.
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+    spec:
+      serviceAccountName: keycloak
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 0           # the Keycloak image expects group 0
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:__KEYCLOAK_VERSION__
+          # "start" = production mode. "--import-realm" = load our realm file the
+          # first time (it is skipped if the realm already exists).
+          args: ["start", "--import-realm"]
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: management
+              containerPort: 9000
+          env:
+            # --- Database ---
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL
+              value: jdbc:postgresql://postgres.demo.svc.cluster.local:5432/keycloak
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef: { name: postgres-credentials, key: username }
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: postgres-credentials, key: password }
+            # --- Address ---
+            # The public address people type in the browser. Keycloak stamps
+            # this address into every token it makes.
+            - name: KC_HOSTNAME
+              value: https://__KC_HOST__
+            # The Istio gateway handles https for us, so inside the cluster
+            # Keycloak listens on plain http (the sidecars encrypt it again).
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            # Trust the "X-Forwarded-*" headers the gateway adds.
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            # --- Other ---
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            # One Keycloak only, so no need to look for cluster buddies.
+            - name: KC_CACHE
+              value: local
+            # First admin user (created only when the database is empty).
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef: { name: keycloak-admin, key: username }
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: keycloak-admin, key: password }
+          volumeMounts:
+            - name: realm
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          # Keycloak is slow to start (1-2 minutes). The startup check gives it
+          # up to 5 minutes before Kubernetes gives up.
+          startupProbe:
+            httpGet: { path: /health/started, port: management }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /health/ready, port: management }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: management }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 250m, memory: 1Gi }
+            limits: { memory: 1536Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        # The realm file has passwords in it, so it is stored as a Secret.
+        - name: realm
+          secret:
+            secretName: keycloak-realm

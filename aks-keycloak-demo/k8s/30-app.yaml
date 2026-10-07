@@ -1,0 +1,92 @@
+# ---------------------------------------------------------------------------
+# The simple Java app with a public page, a private page and a group page.
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app
+  namespace: demo
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app
+  namespace: demo
+  labels:
+    app: app
+spec:
+  selector:
+    app: app
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: demo
+spec:
+  # One copy only: logins are remembered in this pod's memory. With 2 copies
+  # you would need shared sessions (see README, "Going further").
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+      annotations:
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+    spec:
+      serviceAccountName: app
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: __APP_IMAGE__
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Address the BROWSER uses for Keycloak (through the gateway).
+            - name: KEYCLOAK_PUBLIC_URL
+              value: https://__KC_HOST__
+            # Address the APP uses for Keycloak (straight across the cluster).
+            - name: KEYCLOAK_INTERNAL_URL
+              value: http://keycloak.demo.svc.cluster.local:8080
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: { name: app-oidc, key: client-secret }
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 384Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true      # the app cannot change its own files
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp               # the one folder it may write to
+      volumes:
+        - name: tmp
+          emptyDir: {}

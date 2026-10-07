@@ -1,0 +1,111 @@
+# ---------------------------------------------------------------------------
+# PostgreSQL = the database where Keycloak saves users, groups and settings.
+# ---------------------------------------------------------------------------
+
+# A ServiceAccount is an ID card for a pod. Istio uses it to know
+# "this traffic really comes from postgres".
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres
+  namespace: demo
+automountServiceAccountToken: false
+---
+# A Service is a fixed name and address for the pod. Keycloak connects to
+# "postgres:5432" and Kubernetes finds the pod.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: demo
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    # The name starts with "tcp-" so Istio knows this is plain TCP, not web traffic.
+    - name: tcp-postgres
+      port: 5432
+      targetPort: 5432
+---
+# A StatefulSet runs a pod that keeps its data. If the pod restarts, it gets
+# the SAME disk back, so the database is not lost.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: demo
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      serviceAccountName: postgres
+      automountServiceAccountToken: false
+      securityContext:
+        # Run as the "postgres" user (number 999), never as root.
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999            # lets user 999 write to the disk
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: postgres:17
+          ports:
+            - name: tcp-postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: keycloak
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: { name: postgres-credentials, key: username }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: postgres-credentials, key: password }
+            # GOTCHA: a new Azure disk has a "lost+found" folder in it, and
+            # Postgres refuses to start in a folder that is not empty.
+            # So we point it at a sub-folder.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          # "Are you ready for work?" check.
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # "Are you still alive?" check. If it fails, Kubernetes restarts the pod.
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+  # This asks Azure for a 5 GB disk and attaches it to the pod.
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: managed-csi
+        resources:
+          requests:
+            storage: 5Gi

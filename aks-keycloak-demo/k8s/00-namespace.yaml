@@ -1,0 +1,11 @@
+# A namespace is like a folder inside the cluster. Everything for this demo
+# lives in the "demo" folder.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  labels:
+    # This label tells Istio: "add a sidecar to every pod in this namespace".
+    # GOTCHA: on AKS the usual label "istio-injection=enabled" does NOT work.
+    # You must use istio.io/rev=<revision>. create.sh fills in the revision.
+    istio.io/rev: __ISTIO_REVISION__

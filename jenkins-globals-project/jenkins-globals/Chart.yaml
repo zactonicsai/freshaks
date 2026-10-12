@@ -1,0 +1,5 @@
+apiVersion: v2
+name: jenkins-globals
+description: ConfigMap of global env vars for Jenkins build pods, generated from globalVar.yaml
+type: application
+version: 0.1.0

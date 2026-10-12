@@ -1,0 +1,54 @@
+controller:
+  admin:
+    username: "admin"
+    password: "admin"          # change this / use an existing secret for anything real
+  component: "jenkins-controller"
+  serviceType: "NodePort"
+  servicePort: 8080
+  agentListenerServiceType: "NodePort"
+  JCasC:
+    defaultConfig: true
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+
+# In the jenkins chart these are top-level keys, not under controller
+serviceAccount:
+  create: true
+  name: "jenkins"
+
+rbac:
+  create: true
+
+agent:
+  enabled: true
+  image:
+    registry: "docker.io"
+    repository: "jenkins/inbound-agent"
+    tag: "latest"
+  workingDir: "/home/jenkins/agent"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+  # Raw pod YAML merged into the default ("default") pod template.
+  # Every build pod gets all keys from the jenkins-global-vars ConfigMap
+  # (generated from globalVar.yaml) as environment variables.
+  yamlMergeStrategy: "merge"
+  yamlTemplate: |-
+    apiVersion: v1
+    kind: Pod
+    spec:
+      containers:
+        - name: jnlp
+          envFrom:
+            - configMapRef:
+                name: jenkins-global-vars

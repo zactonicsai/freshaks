@@ -1,0 +1,2 @@
+configMapName: jenkins-global-vars
+globalVars: {}

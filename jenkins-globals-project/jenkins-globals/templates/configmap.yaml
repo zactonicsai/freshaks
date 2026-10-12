@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMapName }}
+  labels:
+    app.kubernetes.io/name: jenkins-globals
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+{{- range $k, $v := .Values.globalVars }}
+  {{- if not (regexMatch "^[A-Za-z_][A-Za-z0-9_]*$" $k) }}
+  {{- fail (printf "globalVars key %q is not a valid env var name" $k) }}
+  {{- end }}
+  {{ $k }}: {{ $v | toString | quote }}
+{{- end }}

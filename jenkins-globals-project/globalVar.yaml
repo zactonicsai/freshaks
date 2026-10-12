@@ -1,0 +1,11 @@
+# Global variables injected into every Jenkins build pod as env vars.
+# Keys must be valid env var names (letters, digits, underscore; not starting with a digit).
+# Edit, then run:
+#   helm upgrade --install jenkins-globals ./jenkins-globals -f globalVar.yaml
+configMapName: jenkins-global-vars
+
+globalVars:
+  APP_ENV: "dev"
+  REGISTRY_URL: "registry.example.com"
+  DEPLOY_REGION: "us-east-1"
+  BUILD_TIMEOUT_MIN: "30"

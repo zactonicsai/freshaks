@@ -1,0 +1,46 @@
+controller:
+  admin:
+    username: "admin"
+    password: "admin"
+  component: "jenkins-controller"
+  serviceType: "NodePort"
+  servicePort: 8080
+  agentListener:
+    type: "NodePort"
+  JCasC:
+    defaultConfig: true
+  serviceAccount:
+    create: true
+    name: "jenkins"
+  rbac:
+    create: true
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+
+agent:
+  enabled: true
+  image:
+    registry: "docker.io"
+    repository: "jenkins/inbound-agent"
+    tag: "latest"
+  yaml: |
+    podTemplates:
+      - name: "jenkins-agent"
+        label: "jenkins-agent"
+        nodeSelector: ""
+        containers:
+          - name: "jnlp"
+            image: "jenkins/inbound-agent:latest"
+            workingDir: "/home/jenkins/agent"
+            envFrom:
+              - configMapRef:
+                  name: jenkins-agent-env
+            resourceRequestCpu: "500m"
+            resourceLimitCpu: "1"
+            resourceRequestMemory: "512Mi"
+            resourceLimitMemory: "1Gi"

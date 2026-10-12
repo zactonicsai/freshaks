@@ -41,6 +41,8 @@ helm repo add jenkins https://charts.jenkins.io
 helm repo update
 ```
 
+ kubectl port-forward svc/jenkins 8081:8080
+
 ### 3. Preview the ConfigMap (optional)
 
 ```bash

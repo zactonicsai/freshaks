@@ -9,3 +9,4 @@ globalVars:
   REGISTRY_URL: "registry.example.com"
   DEPLOY_REGION: "us-east-1"
   BUILD_TIMEOUT_MIN: "30"
+  AAAA: "ZZZZZZ"

@@ -17,7 +17,7 @@
 # Overridable env vars (defaults shown):
 #   CLUSTER_NAME=bb-keycloak
 #   NAMESPACE=keycloak
-#   RELEASE=keycloak           # keep as "keycloak" unless you also change upstream.database.hostname
+#   RELEASE=keycloak           # Postgres host is derived as <RELEASE>-postgresql
 #   CHART_REPO=https://repo1.dso.mil/big-bang/product/packages/keycloak.git
 #   CHART_REF=7.3.2-bb.2       # git tag/branch of the package repo ("main" for latest)
 #   ISTIO_VERSION=             # empty = latest from the Istio Helm repo (e.g. 1.27.1)
@@ -436,6 +436,7 @@ else
 fi
 
 HELM_SET_ARGS=(
+  --set-string "upstream.database.hostname=${RELEASE}-postgresql"
   --set-string "upstream.secrets.env.stringData.KC_HOSTNAME=${KC_URL}"
   --set-string "upstream.secrets.env.stringData.KC_BOOTSTRAP_ADMIN_USERNAME=${KC_ADMIN_USER}"
   --set-string "upstream.secrets.env.stringData.KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_ADMIN_PASSWORD}"
@@ -452,6 +453,7 @@ python3 - "${RENDERED}" <<'PY'
 import sys, yaml, collections
 docs = [d for d in yaml.safe_load_all(open(sys.argv[1])) if d]
 problems = []
+images = set()
 svcs = {d["metadata"]["name"] for d in docs if d.get("kind") == "Service"}
 secrets = {d["metadata"]["name"] for d in docs if d.get("kind") == "Secret"}
 cms = {d["metadata"]["name"] for d in docs if d.get("kind") == "ConfigMap"}
@@ -470,6 +472,7 @@ for d in docs:
                     problems.append(f"{name}: KC_DB_URL_HOST={host} but rendered Services are {sorted(svcs)} "
                                     f"-> fix upstream.database.hostname")
         print(f"  image  {name} / {c['name']}: {c.get('image')}")
+        images.add(str(c.get("image", "")).strip().strip('"').strip("'"))
     for v in spec.get("volumes", []) or []:
         if "secret" in v and v["secret"].get("secretName") not in secrets and not v["secret"].get("optional"):
             problems.append(f"{name}: volume {v['name']} wants Secret {v['secret']['secretName']} which the chart does not render")
@@ -480,13 +483,15 @@ for d in docs:
             ref = src.get("secretRef", {}).get("name")
             if ref and ref not in secrets and not src["secretRef"].get("optional"):
                 problems.append(f"{name} container {c['name']}: envFrom Secret {ref} is not rendered by the chart")
+import os
+open(os.path.join(os.path.dirname(sys.argv[1]), "images.txt"), "w").write("\n".join(sorted(i for i in images if i)) + "\n")
 if problems:
     print("\n".join("  ✗ " + p for p in problems)); sys.exit(1)
 PY
 ok "no duplicate env keys; DB host matches a rendered Service; all volume/envFrom refs are rendered"
 
 # 6d. images: refuse registry1 (needs creds), optionally pre-pull + load into kind
-IMAGES="$(grep -E '^\s+image:' "${RENDERED}" | sed -E 's/^\s+image:\s*"?([^"]*)"?/\1/' | sort -u)"
+IMAGES="$(cat "${WORK_DIR}/images.txt")"
 if grep -q 'registry1.dso.mil' <<<"${IMAGES}"; then
   warn "rendered manifests reference Iron Bank images:"
   grep 'registry1.dso.mil' <<<"${IMAGES}" | sed 's/^/      /'
@@ -499,7 +504,9 @@ if [[ "${PREPULL_IMAGES}" == "true" ]]; then
       info "cached   ${img}"
     else
       info "pulling  ${img}"
-      docker pull -q "${img}" >/dev/null || die "docker pull failed for ${img} — check the tag exists and registry is reachable."
+      if ! docker pull "${img}" 2>&1 | sed 's/^/        /'; then
+        die "docker pull failed for ${img} — see docker's message above (tag missing? registry unreachable? rate-limited?)."
+      fi
     fi
     kind load docker-image --name "${CLUSTER_NAME}" "${img}" >/dev/null 2>&1 || warn "kind load failed for ${img} (node will pull it itself)"
   done <<<"${IMAGES}"

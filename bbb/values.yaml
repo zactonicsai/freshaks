@@ -35,7 +35,7 @@ bb-common:
           - istio-gateway/public-ingressgateway
         hosts:
           - "*"
-        service: keycloak-keycloak   # chart sets fullnameOverride, so svc/sts are "keycloak-keycloak"
+        service: keycloak-keycloak-http   # keycloakx HTTP service (StatefulSet is keycloak-keycloak)
         port: 80
         passthrough:
           enabled: false
@@ -51,8 +51,8 @@ upstream:
 
   image:
     # Public upstream image; same version string as the Iron Bank one
-    repository: quay.io/keycloak/keycloak
-    # tag: "26.8.0"   # leave unset to use the chart's pinned default
+    repository: keycloak/keycloak
+    # tag: "latest"   # leave unset to use the chart's pinned default
     pullPolicy: IfNotPresent
 
   imagePullSecrets: []
@@ -111,7 +111,7 @@ upstream:
 
   database:
     vendor: postgres
-    hostname: keycloak-keycloak-postgresql   # assumes release name "keycloak"
+    hostname: keycloak-postgresql   # Bitnami service = <release>-postgresql; deploy.sh sets this from RELEASE
     port: 5432
     database: keycloak
     username: keycloak

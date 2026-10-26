@@ -11,13 +11,13 @@ http://localhost:8080
 istio-gateway/public-ingressgateway   (istio/gateway Helm chart, NodePort 30080/30443)
       │  Gateway (HTTP :80, hosts "*")
       ▼
-VirtualService keycloak/keycloak      (hosts "*" -> keycloak-keycloak:80)
+VirtualService keycloak/keycloak      (hosts "*" -> keycloak-keycloak-http:80)
       │
       ▼
 StatefulSet keycloak-keycloak         (Big Bang chart -> codecentric keycloakx -> quay.io/keycloak/keycloak)
-      │  KC_DB_URL_HOST=keycloak-keycloak-postgresql
+      │  KC_DB_URL_HOST=keycloak-postgresql
       ▼
-StatefulSet keycloak-keycloak-postgresql  (Bitnami PostgreSQL subchart -> docker.io/bitnamilegacy/postgresql:17.6.0)
+StatefulSet keycloak-postgresql  (Bitnami PostgreSQL subchart -> docker.io/bitnamilegacy/postgresql:17.6.0)
 ```
 
 > **Scope:** this repo is a dev/demo/test setup. Section 5 explains what has to change for production HA, and
@@ -68,7 +68,7 @@ Change with `HOST_HTTP_PORT` / `HOST_HTTPS_PORT` before the cluster is created (
 |---|---|---|
 | `CLUSTER_NAME` | `bb-keycloak` | kind cluster name (`kubectl` context `kind-bb-keycloak`) |
 | `NAMESPACE` | `keycloak` | Keycloak + Postgres namespace |
-| `RELEASE` | `keycloak` | Helm release. **Keep `keycloak`** unless you also change `upstream.database.hostname` (the Postgres service name is derived from it) |
+| `RELEASE` | `keycloak` | Helm release. The script passes `upstream.database.hostname=<RELEASE>-postgresql`, so renaming is safe |
 | `CHART_REF` | `7.3.2-bb.2` | Git tag/branch of the package repo. `main` = latest |
 | `ISTIO_VERSION` | *(latest)* | Pin for reproducibility, e.g. `1.27.1` |
 | `ISTIO_NS` / `GATEWAY_NS` / `GATEWAY_NAME` | `istio-system` / `istio-gateway` / `public-ingressgateway` | Mirrors Big Bang naming so values written for BB (`istio-gateway/public-ingressgateway`) work unchanged |
@@ -94,7 +94,7 @@ Big Bang convention for the cluster domain. Set to `localhost`; only used when `
 |---|---|---|
 | `istio.enabled` | `false` | Would create PeerAuthentication / AuthorizationPolicy / ServiceEntry objects that expect the full Big Bang Istio install |
 | `networkPolicies.enabled` | `false` | kind's default CNI (kindnet) doesn't enforce NetworkPolicy anyway; enabling only adds objects to debug |
-| `routes.inbound.keycloak` | `enabled: false`, pre-filled | The Big Bang-native way to get a VirtualService. `deploy.sh` creates its own instead so the manifest is visible and host-independent. To switch: set `enabled: true` and delete the VirtualService block in `deploy.sh`. `hosts: ["*"]` because Istio expands a dot-less host like `localhost` to `localhost.keycloak.svc.cluster.local` |
+| `routes.inbound.keycloak` | `enabled: false`, pre-filled (`service: keycloak-keycloak-http`) | The Big Bang-native way to get a VirtualService. `deploy.sh` creates its own instead so the manifest is visible and host-independent. To switch: set `enabled: true` and delete the VirtualService block in `deploy.sh`. `hosts: ["*"]` because Istio expands a dot-less host like `localhost` to `localhost.keycloak.svc.cluster.local` |
 
 ### `bbtests.enabled: false`
 Big Bang's Cypress/script test hooks need the `bbtests` image and a passthrough TLS gateway. Off.
@@ -112,7 +112,7 @@ Big Bang's Cypress/script test hooks need the `bbtests` image and a passthrough 
 | `metrics.enabled` / `health.enabled` | `true` | `KC_METRICS_ENABLED` / `KC_HEALTH_ENABLED`; probes hit `/health/*` on the **management port 9000** |
 | `extraEnv` | `KC_HOSTNAME_BACKCHANNEL_DYNAMIC`, `KC_LOG_LEVEL` | **Only** vars the chart doesn't already render. The chart emits `KC_HTTP_ENABLED`, `KC_PROXY_HEADERS`, `KC_CACHE*`, `KC_METRICS_ENABLED`, `KC_HEALTH_ENABLED`, `KC_DB*`, `KC_HTTP_RELATIVE_PATH` itself; repeating any of them makes the StatefulSet apply fail with *duplicate entries for key*. `deploy.sh`'s pre-flight catches this |
 | `secrets.env.stringData` | hostname + admin creds | Becomes the `keycloak-keycloak-env` Secret, loaded via `envFrom`. Map keys override the chart's defaults of the same name (the chart's default `KC_HOSTNAME` is `keycloak.dev.bigbang.mil`). `KC_HOSTNAME` is a full URL (hostname **v2** syntax), `KC_HOSTNAME_STRICT=false` so `127.0.0.1` / `keycloak.localhost` also work |
-| `database.*` | bundled Postgres | `hostname: keycloak-keycloak-postgresql` is the Bitnami service name under release `keycloak`. For an external DB set `postgresql.enabled: false` and point these here (or use `database.existingSecret`) |
+| `database.*` | bundled Postgres | `hostname: keycloak-postgresql` — the Bitnami subchart names its Service `<release>-postgresql` (note: *not* `keycloak-keycloak-postgresql` as older Big Bang docs show; the pre-flight check verifies this against the rendered Services). For an external DB set `postgresql.enabled: false` and point these here (or use `database.existingSecret`) |
 | `dbchecker.enabled` | `false` | An init container that waits for the DB. The `--wait` + startup probe already cover this on kind |
 | `http.relativePath` | `/` | keycloakx defaults to `/auth` for WildFly-era compatibility; Keycloak itself has defaulted to `/` since the Quarkus distribution |
 | `service.type` | `ClusterIP` | The Istio gateway owns the NodePort. For "no Istio" set `NodePort` + `httpNodePort: 30080` and point the kind mapping at it |

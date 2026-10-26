@@ -1,0 +1,13 @@
+apiVersion: v2
+name: keycloak-istio-stack
+description: A reviewable, single-node Keycloak and PostgreSQL Helm chart with an Istio VirtualService and a realm subchart.
+type: application
+version: 0.1.0
+appVersion: "26.8.1"
+kubeVersion: ">=1.27.0-0"
+dependencies:
+  # The local subchart owns the initial realm definition. No external chart repo is needed.
+  - name: realm
+    version: 0.1.0
+    repository: file://charts/realm
+    condition: realm.enabled

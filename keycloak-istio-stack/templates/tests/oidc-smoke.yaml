@@ -1,0 +1,30 @@
+{{- if .Values.realm.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "identity.keycloakName" . }}-oidc-test
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  containers:
+    - name: curl
+      image: curlimages/curl:8.16.0
+      # Test service connectivity and realm discovery without going through the gateway.
+      command: ["sh", "-ec"]
+      args:
+        - >-
+          curl --fail --silent --show-error --retry 15 --retry-delay 2
+          http://{{ include "identity.keycloakName" . }}:8080/realms/{{ .Values.realm.name }}/.well-known/openid-configuration
+          -o /dev/null
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        seccompProfile:
+          type: RuntimeDefault
+{{- end }}

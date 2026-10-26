@@ -1,0 +1,8 @@
+# Intended for Docker Desktop Kubernetes or kind with a pre-existing Istio gateway.
+# This hostname resolves to the host loopback on modern desktop browsers.
+keycloak:
+  hostname: http://keycloak.localhost:18080
+istio:
+  host: keycloak.localhost
+  gateways:
+    - istio-system/local-keycloak-gateway

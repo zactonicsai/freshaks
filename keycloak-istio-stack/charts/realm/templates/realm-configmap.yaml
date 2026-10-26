@@ -1,0 +1,47 @@
+{{- if .Values.enabled }}
+{{/*
+  Import data is built as an object then encoded as JSON, avoiding JSON comma/quote errors.
+  Intentionally exclude users, passwords, client secrets, and private signing keys.
+  IMPORTANT: Keycloak --import-realm does not overwrite an existing realm.
+*/}}
+{{- $clients := list }}
+{{- range .Values.clients }}
+{{- $clients = append $clients (dict
+  "clientId" .clientId
+  "enabled" true
+  "protocol" "openid-connect"
+  "publicClient" .publicClient
+  "standardFlowEnabled" .standardFlowEnabled
+  "directAccessGrantsEnabled" .directAccessGrantsEnabled
+  "attributes" (dict "pkce.code.challenge.method" "S256")
+  "redirectUris" .redirectUris
+  "webOrigins" .webOrigins
+) }}
+{{- end }}
+{{- $roleList := list }}
+{{- range .Values.roles }}
+{{- $roleList = append $roleList (dict "name" .) }}
+{{- end }}
+{{- $realm := dict
+  "realm" .Values.name
+  "enabled" true
+  "displayName" .Values.displayName
+  "registrationAllowed" .Values.registrationAllowed
+  "loginWithEmailAllowed" .Values.loginWithEmailAllowed
+  "sslRequired" .Values.sslRequired
+  "roles" (dict "realm" $roleList)
+  "clients" $clients
+}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # Contract with the parent chart's identity.realmConfigMap helper.
+  name: {{ printf "%s-realm" .Release.Name | trunc 63 | trimSuffix "-" }}
+  labels:
+    app.kubernetes.io/name: realm
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  realm.json: |
+    {{- $realm | toPrettyJson | nindent 4 }}
+{{- end }}

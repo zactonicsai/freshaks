@@ -1,0 +1,32 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "identity.postgresName" . }}
+  labels:
+    {{- include "identity.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "identity.postgresSelector" . | nindent 4 }}
+  ports:
+    - name: postgres
+      port: {{ .Values.database.port }}
+      targetPort: postgres
+---
+# StatefulSet requires a governing headless Service for its stable pod identity.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "identity.postgresName" . }}-headless
+  labels:
+    {{- include "identity.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "identity.postgresSelector" . | nindent 4 }}
+  ports:
+    - name: postgres
+      port: {{ .Values.database.port }}
+      targetPort: postgres
+{{- end }}

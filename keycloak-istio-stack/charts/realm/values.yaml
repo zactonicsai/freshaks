@@ -1,0 +1,18 @@
+# Standalone defaults; the parent chart overrides these under its "realm:" key.
+enabled: true
+name: team-demo
+displayName: Team Demo
+sslRequired: none
+registrationAllowed: false
+loginWithEmailAllowed: true
+roles:
+  - reader
+clients:
+  - clientId: demo-web
+    publicClient: true
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    redirectUris:
+      - http://localhost:3000/*
+    webOrigins:
+      - http://localhost:3000

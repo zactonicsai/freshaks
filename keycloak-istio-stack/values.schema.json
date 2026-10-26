@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["keycloak", "database", "postgresql", "istio", "realm"],
+  "properties": {
+    "keycloak": {
+      "type": "object",
+      "required": ["hostname", "replicaCount", "bootstrapAdmin"],
+      "properties": {
+        "hostname": { "type": "string", "pattern": "^https?://[^/]+$" },
+        "replicaCount": { "type": "integer", "enum": [1] },
+        "proxyHeaders": { "type": "string", "enum": ["xforwarded", "forwarded"] },
+        "bootstrapAdmin": {
+          "type": "object",
+          "required": ["existingSecret", "usernameKey", "passwordKey"]
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": ["existingSecret", "passwordKey", "name", "username", "port"],
+      "properties": {
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "existingSecret": { "type": "string", "minLength": 1 },
+        "passwordKey": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "username": { "type": "string", "minLength": 1 }
+      }
+    },
+    "postgresql": {
+      "type": "object",
+      "required": ["enabled", "persistence"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "persistence": {
+          "type": "object",
+          "required": ["enabled", "size"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "size": { "type": "string", "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$" }
+          }
+        }
+      }
+    },
+    "istio": {
+      "type": "object",
+      "required": ["host", "gateways", "virtualService"],
+      "properties": {
+        "host": { "type": "string", "minLength": 1 },
+        "gateways": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "virtualService": { "type": "object", "required": ["enabled"] }
+      }
+    },
+    "realm": {
+      "type": "object",
+      "required": ["enabled", "name", "clients"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "name": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]*$" },
+        "clients": { "type": "array", "items": { "type": "object", "required": ["clientId", "redirectUris"] } }
+      }
+    }
+  }
+}

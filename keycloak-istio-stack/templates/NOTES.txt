@@ -1,0 +1,11 @@
+Keycloak was deployed in namespace {{ .Release.Namespace }}.
+
+Public URL: {{ .Values.keycloak.hostname }}
+OIDC discovery: {{ .Values.keycloak.hostname }}/realms/{{ .Values.realm.name }}/.well-known/openid-configuration
+
+Remember:
+  * This chart references EXISTING Kubernetes Secrets and an EXISTING Istio Gateway.
+  * A realm is imported ONLY when it is missing. Helm upgrades do not synchronize realm edits.
+  * For Docker Desktop, port-forward the gateway Service from host port 18080 to 80.
+
+See README.md and REVIEW_GUIDE.md for commands and production constraints.

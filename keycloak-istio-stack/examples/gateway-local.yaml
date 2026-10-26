@@ -1,0 +1,19 @@
+# OPTIONAL example only; NOT installed by the chart or the test script.
+# If you already have a compatible Gateway, use that instead.
+# Change its metadata name/namespace to match your chosen istio.gateways value.
+# A host-specific listener limits what traffic this demo Gateway accepts.
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: local-keycloak-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http-keycloak
+        protocol: HTTP
+      hosts:
+        - keycloak.localhost

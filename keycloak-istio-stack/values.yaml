@@ -1,0 +1,95 @@
+# REVIEW: This chart is deliberately a SINGLE-INSTANCE lab/reference deployment.
+# Move PostgreSQL to a managed/HA service, enable TLS, and design Keycloak clustering
+# before calling it production ready. See REVIEW_GUIDE.md.
+
+nameOverride: ""
+fullnameOverride: ""
+
+keycloak:
+  image:
+    repository: quay.io/keycloak/keycloak
+    # Keep this explicit and review security notes before changing it.
+    tag: "26.8.1"
+    pullPolicy: IfNotPresent
+  replicaCount: 1 # Intentional: no clustering configuration for multiple replicas.
+  hostname: "http://keycloak.localhost:18080"
+  # Trust X-Forwarded-* ONLY when the gateway overwrites untrusted incoming headers.
+  proxyHeaders: xforwarded
+  # The container's management port (9000) is for kubelet health checks only.
+  httpPort: 8080
+  managementPort: 9000
+  bootstrapAdmin:
+    existingSecret: keycloak-admin
+    usernameKey: username
+    passwordKey: password
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      cpu: "2"
+      memory: 1536Mi
+
+database:
+  # Both the database pod and Keycloak load the password from this Kubernetes Secret.
+  # The test script creates it; the chart NEVER creates or stores the password.
+  existingSecret: keycloak-db
+  passwordKey: password
+  name: keycloak
+  username: keycloak
+  # Supply a DNS name when postgresql.enabled=false (external PostgreSQL).
+  host: ""
+  port: 5432
+
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "17.11-bookworm"
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: true
+    size: 5Gi
+    # Empty means: use the cluster's default StorageClass.
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+istio:
+  virtualService:
+    enabled: true
+  # An Istio Gateway OBJECT, not the gateway Deployment or Service name.
+  # The Gateway must already exist and allow the hostname below.
+  gateways:
+    - istio-system/local-keycloak-gateway
+  host: keycloak.localhost
+
+realm:
+  enabled: true
+  # The subchart reads these values to generate a ConfigMap with realm.json.
+  # Keycloak imports only if the realm does not yet exist.
+  name: team-demo
+  displayName: Team Demo
+  sslRequired: none # Local HTTP-only lab; use all when serving HTTPS in production.
+  registrationAllowed: false
+  loginWithEmailAllowed: true
+  roles:
+    - reader
+    - operator
+  clients:
+    - clientId: demo-web
+      # Public client + PKCE, no client secret. Only for a browser-based demo.
+      publicClient: true
+      standardFlowEnabled: true
+      directAccessGrantsEnabled: false
+      redirectUris:
+        - http://localhost:3000/*
+        - http://127.0.0.1:3000/*
+      webOrigins:
+        - http://localhost:3000
+        - http://127.0.0.1:3000

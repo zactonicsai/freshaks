@@ -1,0 +1,22 @@
+{{- if .Values.istio.virtualService.enabled }}
+# REVIEW: A VirtualService routes traffic; it does NOT create an Istio Gateway.
+# The named Gateway must already listen for istio.host on the desired port.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ include "identity.keycloakName" . }}
+  labels:
+    {{- include "identity.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - {{ required "istio.host must be set" .Values.istio.host | quote }}
+  gateways:
+    {{- toYaml .Values.istio.gateways | nindent 4 }}
+  http:
+    - name: keycloak
+      route:
+        - destination:
+            host: {{ printf "%s.%s.svc.cluster.local" (include "identity.keycloakName" .) .Release.Namespace | quote }}
+            port:
+              number: 8080
+{{- end }}

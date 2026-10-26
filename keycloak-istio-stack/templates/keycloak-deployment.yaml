@@ -1,0 +1,127 @@
+{{- if ne (int .Values.keycloak.replicaCount) 1 -}}
+{{- fail "This example supports only keycloak.replicaCount=1; configure Keycloak clustering before scaling." -}}
+{{- end }}
+{{- if and (not .Values.postgresql.enabled) (not .Values.database.host) -}}
+{{- fail "database.host must be supplied when postgresql.enabled=false" -}}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "identity.keycloakName" . }}
+  labels:
+    {{- include "identity.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # Recreate avoids briefly running two non-clustered Keycloak instances during upgrades.
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      {{- include "identity.keycloakSelector" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "identity.keycloakSelector" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false # App does not call the Kubernetes API.
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: keycloak
+          image: {{ printf "%s:%s" .Values.keycloak.image.repository .Values.keycloak.image.tag | quote }}
+          imagePullPolicy: {{ .Values.keycloak.image.pullPolicy }}
+          # Keycloak's official image accepts these arguments at its entrypoint.
+          args: ["start", "--import-realm"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.keycloak.httpPort }}
+            - name: management
+              containerPort: {{ .Values.keycloak.managementPort }}
+          env:
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL_HOST
+              value: {{ ternary (include "identity.postgresName" .) .Values.database.host .Values.postgresql.enabled | quote }}
+            - name: KC_DB_URL_PORT
+              value: {{ .Values.database.port | quote }}
+            - name: KC_DB_URL_DATABASE
+              value: {{ .Values.database.name | quote }}
+            - name: KC_DB_USERNAME
+              value: {{ .Values.database.username | quote }}
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret | quote }}
+                  key: {{ .Values.database.passwordKey | quote }}
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.bootstrapAdmin.existingSecret | quote }}
+                  key: {{ .Values.keycloak.bootstrapAdmin.usernameKey | quote }}
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.keycloak.bootstrapAdmin.existingSecret | quote }}
+                  key: {{ .Values.keycloak.bootstrapAdmin.passwordKey | quote }}
+            - name: KC_HTTP_ENABLED
+              value: "true" # Gateway terminates HTTP for local testing; production needs HTTPS at edge.
+            - name: KC_HTTP_MANAGEMENT_SCHEME
+              value: http # Kubernetes probes use HTTP on port 9000 even if edge TLS is added later.
+            - name: KC_HOSTNAME
+              value: {{ required "keycloak.hostname must be set" .Values.keycloak.hostname | quote }}
+            - name: KC_PROXY_HEADERS
+              value: {{ .Values.keycloak.proxyHeaders | quote }}
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: KC_METRICS_ENABLED
+              value: "true"
+            - name: KC_CACHE
+              value: local # Single instance only; not valid for an HA deployment.
+          # Only the public application port is exposed by the ClusterIP service.
+          startupProbe:
+            httpGet:
+              path: /health/started
+              port: management
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: management
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: management
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.keycloak.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            # Not read-only: the standard image writes temp/augmentation files.
+            readOnlyRootFilesystem: false
+          {{- if .Values.realm.enabled }}
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          {{- end }}
+      {{- if .Values.realm.enabled }}
+      volumes:
+        - name: realm-import
+          configMap:
+            name: {{ include "identity.realmConfigMap" . }}
+            items:
+              - key: realm.json
+                path: realm.json
+      {{- end }}

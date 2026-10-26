@@ -1,0 +1,193 @@
+# values.yaml — Big Bang Keycloak on a local kind cluster behind an Istio gateway
+#
+# Chart: https://repo1.dso.mil/big-bang/product/packages/keycloak  (chart/, 7.3.x-bb.x)
+# The chart wraps the codecentric "keycloakx" chart under `upstream:`, bundles a Bitnami
+# PostgreSQL subchart under `postgresql:`, and uses the bb-common library subchart for
+# Istio routes / network policies. Its values.schema.json rejects the legacy top-level
+# `domain`, `istio` and `networkPolicies` keys, so none of those appear here.
+#
+# Traffic path: http://localhost:8080 -> kind hostPort -> NodePort 30080
+#   -> istio-gateway/public-ingressgateway -> VirtualService -> keycloak-keycloakx:80
+# The Gateway + VirtualService are applied by deploy.sh (see ISTIO section below).
+#
+# Images: PUBLIC upstream images (quay.io Keycloak + Docker Hub Bitnami Postgres).
+# FOR LOCAL DEV / DEMO ONLY.
+
+global:
+  domain: localhost
+
+# ---------------------------------------------------------------------------
+# bb-common (Istio routes, NetworkPolicies, AuthorizationPolicies)
+# ---------------------------------------------------------------------------
+# deploy.sh creates the Gateway and VirtualService itself, so the chart-managed
+# route stays off. To use the Big Bang-managed route instead, flip `enabled`
+# below to true and delete the VirtualService block in deploy.sh.
+bb-common:
+  istio:
+    enabled: false
+  networkPolicies:
+    enabled: false
+  routes:
+    inbound:
+      keycloak:
+        enabled: false
+        gateways:
+          - istio-gateway/public-ingressgateway
+        hosts:
+          - "*"
+        service: keycloak-keycloak   # chart sets fullnameOverride, so svc/sts are "keycloak-keycloak"
+        port: 80
+        passthrough:
+          enabled: false
+
+bbtests:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Keycloak (codecentric keycloakx values under `upstream`)
+# ---------------------------------------------------------------------------
+upstream:
+  replicas: 1
+
+  image:
+    # Public upstream image; same version string as the Iron Bank one
+    repository: quay.io/keycloak/keycloak
+    # tag: "26.8.0"   # leave unset to use the chart's pinned default
+    pullPolicy: IfNotPresent
+
+  imagePullSecrets: []
+
+  command:
+    - /opt/keycloak/bin/kc.sh
+  args:
+    - start
+
+  # The keycloakx chart renders KC_HTTP_ENABLED, KC_PROXY_HEADERS, KC_CACHE,
+  # KC_METRICS_ENABLED and KC_HEALTH_ENABLED itself from the keys below — do NOT
+  # repeat them in extraEnv or the StatefulSet apply fails with duplicate env keys.
+  proxy:
+    enabled: true
+    mode: xforwarded        # -> KC_PROXY_HEADERS=xforwarded (trust the Istio gateway)
+    http:
+      enabled: true         # -> KC_HTTP_ENABLED=true
+  cache:
+    stack: default          # -> KC_CACHE=ispn, KC_CACHE_STACK=jdbc-ping (uses Postgres)
+  metrics:
+    enabled: true           # -> KC_METRICS_ENABLED=true
+  health:
+    enabled: true           # -> KC_HEALTH_ENABLED=true
+
+  # Overrides the chart's default extraEnv block entirely. Only vars the chart
+  # does not already set belong here.
+  extraEnv: |-
+    - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
+      value: "true"
+    - name: KC_LOG_LEVEL
+      value: "INFO"
+
+  # Rendered into the <release>-keycloakx-env Secret and loaded via envFrom.
+  # Map keys here replace the chart's defaults of the same name.
+  # deploy.sh overrides KC_HOSTNAME and the admin credentials with --set.
+  secrets:
+    env:
+      stringData:
+        KC_HOSTNAME: "http://localhost:8080"
+        KC_HOSTNAME_STRICT: "false"
+        KC_BOOTSTRAP_ADMIN_USERNAME: admin
+        KC_BOOTSTRAP_ADMIN_PASSWORD: password
+        KEYCLOAK_ADMIN: admin
+        KEYCLOAK_ADMIN_PASSWORD: password
+        JAVA_OPTS_APPEND: "-Djava.net.preferIPv4Stack=true"
+        # The Big Bang defaults set JVM flags (security properties / FIPS / truststore
+        # paths) that only exist in the Iron Bank image. Blank them for the public image.
+        JAVA_TOOL_OPTIONS: ""
+
+  # Big Bang's defaults may add an init container (p1-keycloak-plugin from
+  # registry1) plus truststore/realm volume mounts. None of that exists on the
+  # public image, so clear them. Empty string == keycloakx chart default.
+  extraInitContainers: ""
+  extraVolumes: ""
+  extraVolumeMounts: ""
+
+  database:
+    vendor: postgres
+    hostname: keycloak-keycloak-postgresql   # assumes release name "keycloak"
+    port: 5432
+    database: keycloak
+    username: keycloak
+    password: keycloak
+
+  dbchecker:
+    enabled: false
+
+  http:
+    relativePath: "/"
+
+  # ClusterIP — the Istio ingress gateway owns the NodePort
+  service:
+    type: ClusterIP
+    httpPort: 80
+    httpsPort: 8443
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+
+  # quay.io/keycloak/keycloak runs as uid 1000 / gid 0
+  podSecurityContext:
+    fsGroup: 1000
+    runAsGroup: 0
+    runAsNonRoot: true
+    runAsUser: 1000
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    runAsGroup: 0
+    runAsNonRoot: true
+    runAsUser: 1000
+
+  # Keep the management port (9000) out of the sidecar if injection is turned on
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeInboundPorts: "9000"
+
+# ---------------------------------------------------------------------------
+# Bundled PostgreSQL (Bitnami subchart, public Bitnami image)
+# ---------------------------------------------------------------------------
+# Bitnami moved versioned public images to docker.io/bitnamilegacy in 2025;
+# docker.io/bitnami/postgresql now only carries "latest".
+postgresql:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: "17.6.0"
+  global:
+    imagePullSecrets: []
+    security:
+      # required by the Bitnami chart for any non-docker.io/bitnami/* image
+      allowInsecureImages: true
+    postgresql:
+      auth:
+        username: keycloak
+        password: keycloak
+        database: keycloak
+  primary:
+    networkPolicy:
+      enabled: false
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi

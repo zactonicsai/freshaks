@@ -18,3 +18,7 @@ k8s-debug-tool/k8s_doctor.egg-info/
 k8s-fips-upgrade-demo/istio-1.31.1/
 .DS_Store
 .DS_Store
+gitopschatg
+gitopschatg/seed/app-repo/build/tmp/compileJava/previous-compilation-data.bin
+.DS_Store
+bbb/.work/

@@ -9,6 +9,7 @@
 #   ./deploy.sh --debug      # same, with bash xtrace + helm --debug
 #   ./deploy.sh --verify     # only re-run the post-deploy checks
 #   ./deploy.sh --diagnose   # dump pod status / events / logs for the keycloak namespace
+#   ./deploy.sh --port-forward  # host port -> istio gateway via kubectl (if kind port mapping is missing)
 #   ./deploy.sh --destroy    # delete the kind cluster
 #
 # Every step is checked; on any failure the script prints pod status, container
@@ -108,6 +109,12 @@ for p in json.load(open(sys.argv[1])).get("items", []):
                 print(f'         last={k2} reason={d2.get("reason","")} exit={d2.get("exitCode","")} {d2.get("message","")[:200]}')
 PY
 
+  echo; echo "--- probes (from StatefulSets)"
+  kubectl -n "${ns}" get sts -o jsonpath='{range .items[*]}{.metadata.name}{":"}{range .spec.template.spec.containers[*]}{"  "}{.name}{" startup="}{.startupProbe.httpGet.scheme}{"://:"}{.startupProbe.httpGet.port}{.startupProbe.httpGet.path}{" ready="}{.readinessProbe.httpGet.scheme}{"://:"}{.readinessProbe.httpGet.port}{.readinessProbe.httpGet.path}{" live="}{.livenessProbe.httpGet.scheme}{"://:"}{.livenessProbe.httpGet.port}{.livenessProbe.httpGet.path}{end}{"\n"}{end}' 2>/dev/null || true
+
+  echo; echo "--- probe failures (reason=Unhealthy)"
+  kubectl -n "${ns}" get events --field-selector reason=Unhealthy --sort-by=.lastTimestamp 2>/dev/null | tail -n 10 || true
+
   echo; echo "--- events (newest last)"
   kubectl -n "${ns}" get events --sort-by=.lastTimestamp 2>/dev/null | tail -n 40 || true
 
@@ -142,7 +149,7 @@ on_error() {
 # ---------------------------------------------------------------------------
 wait_for_sts() {
   local ns="$1" sts="$2" timeout="${3:-${WAIT_TIMEOUT}}"
-  local start now want ready states bad
+  local start now want ready states bad shown_probe_hint=0
   start=$(date +%s)
   log "Waiting for StatefulSet ${ns}/${sts} (timeout ${timeout}s)"
   while :; do
@@ -168,6 +175,15 @@ PY
       info "ready ${ready}/${want}  ${states//$'\n'/ | }"
       if [[ "${ready}" == "${want}" && "${want}" != "0" ]]; then
         ok "${sts} ready (${ready}/${want})"; return 0
+      fi
+      now=$(date +%s)
+      if (( now - start > 90 )) && [[ "${shown_probe_hint:-0}" == "0" ]] && grep -q 'running' <<<"${states}"; then
+        shown_probe_hint=1
+        warn "pod is Running but not Ready after 90s — checking probes"
+        kubectl -n "${ns}" get sts "${sts}" -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{": startup="}{.startupProbe.httpGet.scheme}{"://:"}{.startupProbe.httpGet.port}{.startupProbe.httpGet.path}{"  ready="}{.readinessProbe.httpGet.scheme}{"://:"}{.readinessProbe.httpGet.port}{.readinessProbe.httpGet.path}{"\n"}{end}' | sed 's/^/      probes: /'
+        kubectl -n "${ns}" get events --field-selector reason=Unhealthy --sort-by=.lastTimestamp 2>/dev/null | tail -n 5 | sed 's/^/      /'
+        info "latest keycloak log lines:"
+        kubectl -n "${ns}" logs "sts/${sts}" --tail=15 2>/dev/null | sed 's/^/      | /' || true
       fi
       bad="$(grep -oE 'CrashLoopBackOff|ImagePullBackOff|ErrImagePull|InvalidImageName|CreateContainerConfigError|CreateContainerError|RunContainerError|OOMKilled|Error' <<<"${states}" | sort -u | tr '\n' ' ')"
       if [[ -n "${bad}" ]]; then
@@ -261,10 +277,15 @@ case "${1:-}" in
     need kubectl; verify; exit 0 ;;
   --diagnose)
     need kubectl; diagnose "${NAMESPACE}"; exit 0 ;;
+  --port-forward)
+    # Alternative to kind's host port mapping: forward host port -> gateway service.
+    need kubectl; kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
+    log "Forwarding ${KC_URL} -> ${GATEWAY_NS}/svc/${GATEWAY_NAME}:80 (Ctrl-C to stop)"
+    exec kubectl -n "${GATEWAY_NS}" port-forward "svc/${GATEWAY_NAME}" "${HOST_HTTP_PORT}:80" ;;
   --debug)
     DEBUG=true ;;
   "") ;;
-  *) die "unknown flag '$1' (use --debug, --verify, --diagnose or --destroy)" ;;
+  *) die "unknown flag '$1' (use --debug, --verify, --diagnose, --port-forward or --destroy)" ;;
 esac
 
 if [[ "${DEBUG}" == "true" ]]; then
@@ -583,6 +604,7 @@ Keycloak is up behind Istio.
   Logs:       kubectl -n ${NAMESPACE} logs -f -l app.kubernetes.io/name=keycloakx
   Gateway:    kubectl -n ${GATEWAY_NS} get gateway,svc
   Diagnose:   $0 --diagnose
+  Fallback:   $0 --port-forward   (if host port ${HOST_HTTP_PORT} is not mapped into kind)
   Re-verify:  $0 --verify
   Tear down:  $0 --destroy
 EOF

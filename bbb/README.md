@@ -139,6 +139,7 @@ Big Bang's Cypress/script test hooks need the `bbtests` image and a passthrough 
 ./deploy.sh --debug               # same, with bash xtrace and helm --debug
 ./deploy.sh --verify              # istiod, gateway, Gateway/VS objects, pod Ready, in-cluster + host HTTP 200
 ./deploy.sh --diagnose            # pods, per-container state/reason/exit code, events, logs (current + previous)
+./deploy.sh --port-forward        # kubectl port-forward host:8080 -> istio gateway :80 (bypasses kind port mapping)
 ./deploy.sh --destroy             # delete the kind cluster (and all data)
 
 kubectl -n keycloak get pods,svc,pvc

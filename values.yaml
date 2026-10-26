@@ -1,0 +1,367 @@
+# =============================================================================
+# keycloak-stack — default values
+#
+# Everything here is validated by values.schema.json at install/upgrade time.
+# Secrets: leave *.password empty and point to an existingSecret in production.
+# =============================================================================
+
+global:
+  # Image pull secrets applied to every pod created by this chart.
+  imagePullSecrets: []
+  # Cluster-wide default StorageClass override for the PostgreSQL PVC.
+  storageClass: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Labels/annotations added to every resource rendered by the chart.
+commonLabels: {}
+commonAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Istio
+# -----------------------------------------------------------------------------
+istio:
+  enabled: true
+
+  # The EXISTING ingress Gateway this chart attaches to. The chart does not
+  # create a Gateway; it only references it in the VirtualService.
+  gateway:
+    name: key-gate
+    namespace: istio-system
+
+  # Public hostnames served through the gateway. The Gateway's server block
+  # must also list these hosts (or a wildcard that covers them).
+  hosts:
+    - keycloak.example.com
+
+  # Pod-level sidecar behaviour.
+  sidecar:
+    # Adds sidecar.istio.io/inject to pods. Keep true when the namespace is not
+    # labelled for auto-injection, or to force injection on/off per workload.
+    inject: true
+    # Exclude the JGroups (Infinispan cluster) ports from the sidecar. JGroups
+    # does its own TCP handshake and does not play well behind Envoy; this is
+    # the documented approach for Keycloak clustering on Istio.
+    excludeJGroupsPorts: true
+    # Make the app container wait for Envoy so the DB connection never starts
+    # before mTLS is available.
+    holdApplicationUntilProxyStarts: true
+
+  virtualService:
+    enabled: true
+    annotations: {}
+    # URI prefixes routed to Keycloak. Use ["/auth"] together with
+    # keycloak.httpRelativePath="/auth" if Keycloak is not at the root.
+    prefixes:
+      - "/"
+    # Overall request timeout (Keycloak admin operations can be slow).
+    timeout: 60s
+    retries:
+      attempts: 2
+      perTryTimeout: 15s
+      retryOn: "connect-failure,refused-stream,unavailable,gateway-error"
+    # Return 403 for the admin console / admin REST API at the edge. Enable in
+    # production and reach the console over VPN/port-forward or a second host
+    # that you restrict with an AuthorizationPolicy.
+    blockAdminConsole: false
+    # Response headers added at the edge. HSTS is safe because TLS terminates
+    # on the gateway.
+    responseHeaders:
+      Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+      X-Content-Type-Options: "nosniff"
+    # Optional CORS policy (Istio CorsPolicy shape). Empty = not rendered.
+    corsPolicy: {}
+
+  destinationRule:
+    enabled: true
+    # Sticky sessions on Keycloak's auth-session cookie. Not strictly required
+    # with a working Infinispan cluster, but it removes a replication race
+    # during login flows and is the upstream recommendation.
+    sessionAffinity:
+      enabled: true
+      cookieName: AUTH_SESSION_ID
+      ttl: 0s
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1024
+        http2MaxRequests: 1024
+        maxRequestsPerConnection: 0
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+
+  peerAuthentication:
+    # Workload-scoped (selector) PeerAuthentication — does not affect other
+    # workloads in the namespace.
+    enabled: true
+    mode: STRICT
+
+  authorizationPolicy:
+    # Identity-based allow-list (requires STRICT mTLS). Off by default because
+    # the gateway's service-account principal differs between installs; verify
+    # it with:  kubectl -n istio-system get deploy -l istio=ingressgateway \
+    #            -o jsonpath='{.items[0].spec.template.spec.serviceAccountName}'
+    enabled: false
+    ingressGatewayPrincipals:
+      - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+    # Extra Istio AuthorizationPolicy rules appended verbatim.
+    extraRules: []
+
+# -----------------------------------------------------------------------------
+# Keycloak
+# -----------------------------------------------------------------------------
+keycloak:
+  image:
+    registry: quay.io
+    repository: keycloak/keycloak
+    # Empty = Chart.appVersion
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  # `kc.sh` arguments. Use ["start", "--optimized"] with a pre-built image
+  # (see README "Build an optimized image") to cut startup from ~60s to ~10s.
+  args:
+    - start
+
+  # Public URL. Empty = https://<first istio.hosts entry>.
+  # Keycloak 25+ "hostname v2" accepts a full URL.
+  hostname: ""
+  # Optional separate admin URL (e.g. https://keycloak-admin.internal).
+  hostnameAdmin: ""
+  # Set to "/auth" to serve Keycloak under a sub-path.
+  httpRelativePath: "/"
+
+  admin:
+    username: admin
+    # Leave empty: the chart generates a random password once and preserves it
+    # across upgrades (via `lookup`). Or set existingSecret.
+    password: ""
+    existingSecret: ""
+    existingSecretUsernameKey: username
+    existingSecretPasswordKey: password
+
+  cache:
+    # Infinispan stack. "jdbc-ping" (Keycloak 26 default) needs no extra
+    # network discovery and works through the DB. "kubernetes" uses DNS_PING
+    # against the headless service.
+    stack: jdbc-ping
+
+  # Feature flags, e.g. ["token-exchange", "admin-fine-grained-authz"]
+  features: []
+  featuresDisabled: []
+  logLevel: info
+  # Proxy header mode: "xforwarded" matches what Istio's gateway sets.
+  proxyHeaders: xforwarded
+
+  metrics:
+    enabled: true
+    # Adds prometheus.io/* pod annotations pointing at the management port.
+    podAnnotations: true
+  health:
+    enabled: true
+
+  # Extra env / envFrom for anything not modelled above (KC_* vars are all valid).
+  extraEnv: []
+  extraEnvFrom: []
+  # Appended to JAVA_OPTS_APPEND.
+  javaOptsAppend: "-XX:MaxRAMPercentage=70 -Djava.net.preferIPv4Stack=true"
+
+  service:
+    type: ClusterIP
+    port: 8080
+    managementPort: 9000
+    annotations: {}
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 2Gi
+
+  # Startup probe gives Keycloak up to ~5 min (non-optimized start + DB migration).
+  probes:
+    startup:
+      failureThreshold: 60
+      periodSeconds: 5
+    liveness:
+      periodSeconds: 10
+      failureThreshold: 3
+    readiness:
+      periodSeconds: 10
+      failureThreshold: 3
+
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+    automountServiceAccountToken: false
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    # true requires an optimized image (plain `start` rebuilds Quarkus into
+    # /opt/keycloak/lib at boot). Set true once you use `--optimized`.
+    readOnlyRootFilesystem: false
+
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  terminationGracePeriodSeconds: 60
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Spread replicas across nodes/zones by default.
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+
+  extraVolumes: []
+  extraVolumeMounts: []
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+  # Deployment rollout strategy.
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+# -----------------------------------------------------------------------------
+# PostgreSQL (bundled, single-node StatefulSet)
+#
+# Fine for dev/test and small installs. For production prefer a managed
+# database or an operator (CloudNativePG, Crunchy, Zalando) and set
+# postgresql.enabled=false + externalDatabase.*
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: postgres
+    tag: "16.6"
+    pullPolicy: IfNotPresent
+
+  auth:
+    database: keycloak
+    username: keycloak
+    # Leave empty to generate once and preserve across upgrades, or use
+    # existingSecret (key: passwordKey).
+    password: ""
+    existingSecret: ""
+    passwordKey: password
+
+  # Extra `postgres -c key=value` arguments.
+  extraArgs:
+    - "-c"
+    - "max_connections=200"
+    - "-c"
+    - "shared_buffers=256MB"
+
+  service:
+    port: 5432
+    annotations: {}
+
+  persistence:
+    enabled: true
+    # Empty = global.storageClass, then cluster default.
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    annotations: {}
+    # Keep the PVC when the release is uninstalled (StatefulSet
+    # persistentVolumeClaimRetentionPolicy). Retain|Delete
+    retentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+  # Postgres official image runs as uid/gid 999.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 999
+    fsGroup: 999
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  terminationGracePeriodSeconds: 60
+
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+
+# Used only when postgresql.enabled=false
+externalDatabase:
+  host: ""
+  port: 5432
+  database: keycloak
+  username: keycloak
+  password: ""
+  existingSecret: ""
+  passwordKey: password
+  # Appended to the JDBC URL, e.g. "?sslmode=require"
+  urlProperties: ""
+
+# -----------------------------------------------------------------------------
+# NetworkPolicy (ingress-only; never blocks sidecar → istiod egress)
+# -----------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  # Where the Istio ingress gateway pods live.
+  ingressGateway:
+    namespace: istio-system
+    podSelector:
+      istio: ingressgateway
+  # Namespace allowed to scrape the management port (metrics). Empty = none.
+  monitoringNamespace: ""
+  # Extra `from` blocks appended to the Keycloak ingress rule.
+  extraKeycloakIngressFrom: []
+
+# `helm test` pod that curls the readiness endpoint.
+tests:
+  enabled: true
+  image: curlimages/curl:8.11.0

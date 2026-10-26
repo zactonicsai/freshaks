@@ -33,6 +33,7 @@
 #   HOST_HTTP_PORT=8080        # host port -> ingress gateway NodePort 30080
 #   HOST_HTTPS_PORT=8443       # host port -> ingress gateway NodePort 30443
 #   WAIT_TIMEOUT=600           # seconds to wait for each StatefulSet
+#   KC_START_GRACE=30          # seconds to wait after Postgres is Ready before watching Keycloak
 
 set -euo pipefail
 
@@ -52,6 +53,7 @@ KC_ADMIN_PASSWORD="${KC_ADMIN_PASSWORD:-password}"
 HOST_HTTP_PORT="${HOST_HTTP_PORT:-8080}"
 HOST_HTTPS_PORT="${HOST_HTTPS_PORT:-8443}"
 WAIT_TIMEOUT="${WAIT_TIMEOUT:-600}"
+KC_START_GRACE="${KC_START_GRACE:-30}"
 DEBUG="${DEBUG:-false}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -72,7 +74,7 @@ ok()   { printf '\033[1;32m  ✔ %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m  ! %s\033[0m\n' "$*"; }
 die()  { printf '\n\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "'$1' is required but not installed."; }
-run()  { info "\$ $*"; "$@"; }
+run()  { local shown="$*"; shown="${shown//${KC_ADMIN_PASSWORD}/***}"; info "\$ ${shown}"; "$@"; }
 
 # ---------------------------------------------------------------------------
 # Diagnostics — printed on any failure after the cluster exists
@@ -112,6 +114,9 @@ PY
   echo; echo "--- probes (from StatefulSets)"
   kubectl -n "${ns}" get sts -o jsonpath='{range .items[*]}{.metadata.name}{":"}{range .spec.template.spec.containers[*]}{"  "}{.name}{" startup="}{.startupProbe.httpGet.scheme}{"://:"}{.startupProbe.httpGet.port}{.startupProbe.httpGet.path}{" ready="}{.readinessProbe.httpGet.scheme}{"://:"}{.readinessProbe.httpGet.port}{.readinessProbe.httpGet.path}{" live="}{.livenessProbe.httpGet.scheme}{"://:"}{.livenessProbe.httpGet.port}{.livenessProbe.httpGet.path}{end}{"\n"}{end}' 2>/dev/null || true
 
+  echo; echo "--- in-cluster health (curl from the gateway pod)"
+  health_probe "${ns}"
+
   echo; echo "--- probe failures (reason=Unhealthy)"
   kubectl -n "${ns}" get events --field-selector reason=Unhealthy --sort-by=.lastTimestamp 2>/dev/null | tail -n 10 || true
 
@@ -141,6 +146,24 @@ on_error() {
     diagnose "${NAMESPACE}"
   fi
   exit "${code}"
+}
+
+# ---------------------------------------------------------------------------
+# Probe Keycloak from INSIDE the cluster (the gateway pod has curl): prints the
+# HTTP code + body of the management health endpoints and the public port.
+# ---------------------------------------------------------------------------
+health_probe() {
+  local ns="$1" pod="${2:-}" ip path out code body
+  [[ -n "${pod}" ]] || pod="$(kubectl -n "${ns}" get pods -l app.kubernetes.io/name=keycloakx -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  [[ -n "${pod}" ]] || { warn "no keycloak pod yet"; return 0; }
+  ip="$(kubectl -n "${ns}" get pod "${pod}" -o jsonpath='{.status.podIP}' 2>/dev/null || true)"
+  [[ -n "${ip}" ]] || { warn "${pod} has no IP yet"; return 0; }
+  for path in "9000/health/started" "9000/health/ready" "9000/health/live" "8080/realms/master"; do
+    out="$(kubectl -n "${GATEWAY_NS}" exec "deploy/${GATEWAY_NAME}" -- \
+            curl -s -m 4 -o /dev/stderr -w '%{http_code}' "http://${ip}:${path}" 2>"${WORK_DIR}/probe.body" || true)"
+    code="${out:-000}"; body="$(tr -d '\n' < "${WORK_DIR}/probe.body" 2>/dev/null | cut -c1-160)"
+    printf '      http://%s:%-22s -> %s %s\n' "${ip}" "${path}" "${code}" "${body}"
+  done
 }
 
 # ---------------------------------------------------------------------------
@@ -177,13 +200,16 @@ PY
         ok "${sts} ready (${ready}/${want})"; return 0
       fi
       now=$(date +%s)
-      if (( now - start > 90 )) && [[ "${shown_probe_hint:-0}" == "0" ]] && grep -q 'running' <<<"${states}"; then
-        shown_probe_hint=1
-        warn "pod is Running but not Ready after 90s — checking probes"
-        kubectl -n "${ns}" get sts "${sts}" -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{": startup="}{.startupProbe.httpGet.scheme}{"://:"}{.startupProbe.httpGet.port}{.startupProbe.httpGet.path}{"  ready="}{.readinessProbe.httpGet.scheme}{"://:"}{.readinessProbe.httpGet.port}{.readinessProbe.httpGet.path}{"\n"}{end}' | sed 's/^/      probes: /'
-        kubectl -n "${ns}" get events --field-selector reason=Unhealthy --sort-by=.lastTimestamp 2>/dev/null | tail -n 5 | sed 's/^/      /'
-        info "latest keycloak log lines:"
-        kubectl -n "${ns}" logs "sts/${sts}" --tail=15 2>/dev/null | sed 's/^/      | /' || true
+      if grep -q 'running' <<<"${states}" && [[ "${sts}" != *postgres* ]]; then
+        if [[ "${shown_probe_hint:-0}" == "0" ]]; then
+          shown_probe_hint=1
+          kubectl -n "${ns}" get sts "${sts}" -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{": startup="}{.startupProbe.httpGet.scheme}{"://:"}{.startupProbe.httpGet.port}{.startupProbe.httpGet.path}{"  ready="}{.readinessProbe.httpGet.scheme}{"://:"}{.readinessProbe.httpGet.port}{.readinessProbe.httpGet.path}{"\n"}{end}' | sed 's/^/      probes: /'
+        fi
+        info "last keycloak log lines:"
+        kubectl -n "${ns}" logs "sts/${sts}" --tail=4 2>/dev/null | cut -c1-180 | sed 's/^/      | /' || true
+        info "in-cluster health (curl from the gateway pod):"
+        health_probe "${ns}"
+        kubectl -n "${ns}" get events --field-selector reason=Unhealthy --sort-by=.lastTimestamp 2>/dev/null | tail -n 2 | grep -v '^LAST' | sed 's/^/      event: /' || true
       fi
       bad="$(grep -oE 'CrashLoopBackOff|ImagePullBackOff|ErrImagePull|InvalidImageName|CreateContainerConfigError|CreateContainerError|RunContainerError|OOMKilled|Error' <<<"${states}" | sort -u | tr '\n' ' ')"
       if [[ -n "${bad}" ]]; then
@@ -227,7 +253,9 @@ verify() {
 
   if kubectl -n "${NAMESPACE}" wait --for=condition=Ready pod -l app.kubernetes.io/name=keycloakx --timeout=120s >/dev/null 2>&1; then
     ok "Keycloak pod(s) Ready"
-  else warn "Keycloak pods not Ready"; failed=1; fi
+  else
+    warn "Keycloak pods not Ready — in-cluster health:"; health_probe "${NAMESPACE}"; failed=1
+  fi
 
   # In-cluster check: gateway pod -> keycloak service (isolates kind port mapping problems)
   local svc port
@@ -402,7 +430,7 @@ NP="$(kubectl -n "${GATEWAY_NS}" get svc "${GATEWAY_NAME}" -o jsonpath='{.spec.p
 ok "gateway service NodePort http2=30080"
 
 GATEWAY_SELECTOR="${GATEWAY_NAME#istio-}"   # istio/gateway chart labels pods istio=<name minus istio- prefix>
-kubectl apply -f - <<EOF
+run kubectl apply -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
@@ -465,6 +493,7 @@ HELM_SET_ARGS=(
   --set-string "upstream.secrets.env.stringData.KEYCLOAK_ADMIN_PASSWORD=${KC_ADMIN_PASSWORD}"
 )
 
+info "\$ helm template ${RELEASE} ${CHART_DIR}/chart -n ${NAMESPACE} -f ${VALUES_FILE} [+ --set-string admin/hostname]"
 helm template "${RELEASE}" "${CHART_DIR}/chart" --namespace "${NAMESPACE}" \
   --values "${VALUES_FILE}" "${HELM_SET_ARGS[@]}" > "${RENDERED}"
 ok "rendered $(grep -c '^kind:' "${RENDERED}") resources -> ${RENDERED}"
@@ -542,28 +571,21 @@ run helm upgrade --install "${RELEASE}" "${CHART_DIR}/chart" ${HELM_DEBUG[@]+"${
   --namespace "${NAMESPACE}" \
   --values "${VALUES_FILE}" "${HELM_SET_ARGS[@]}" \
   --timeout 15m
-helm -n "${NAMESPACE}" status "${RELEASE}" | head -n 8
-
-PG_STS="$(grep -B1 -A3 '^kind: StatefulSet' "${RENDERED}" | grep -E '^\s+name:' | awk '{print $2}' | grep -i postgres | head -n1 || true)"
-KC_STS="$(kubectl -n "${NAMESPACE}" get sts -l app.kubernetes.io/name=keycloakx -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-KC_STS="${KC_STS:-${RELEASE}-keycloak}"
-[[ -n "${PG_STS}" ]] && wait_for_sts "${NAMESPACE}" "${PG_STS}"
-wait_for_sts "${NAMESPACE}" "${KC_STS}"
+run helm -n "${NAMESPACE}" status "${RELEASE}" | head -n 8
+run kubectl -n "${NAMESPACE}" get sts,svc,pods
 
 # ---------------------------------------------------------------------------
-# 8. VirtualService
+# 8. VirtualService (needs only the Service name, so it goes in before the wait)
 # ---------------------------------------------------------------------------
 log "Step 8/9: VirtualService"
 KC_SVC="$(kubectl -n "${NAMESPACE}" get svc -l app.kubernetes.io/name=keycloakx \
           -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep -v headless | head -n1 || true)"
-[[ -n "${KC_SVC}" ]] || KC_SVC="${RELEASE}-keycloak"
+[[ -n "${KC_SVC}" ]] || KC_SVC="${RELEASE}-keycloak-http"
 KC_SVC_PORT="$(kubectl -n "${NAMESPACE}" get svc "${KC_SVC}" -o jsonpath='{.spec.ports[?(@.name=="http")].port}' 2>/dev/null || true)"
 KC_SVC_PORT="${KC_SVC_PORT:-80}"
-kubectl -n "${NAMESPACE}" get endpoints "${KC_SVC}" -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q . \
-  || die "Service ${KC_SVC} has no endpoints — pod not Ready or selector mismatch."
-ok "service ${KC_SVC}:${KC_SVC_PORT} has endpoints"
+info "target service: ${KC_SVC}:${KC_SVC_PORT}"
 
-kubectl apply -f - <<EOF
+run kubectl apply -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
@@ -583,12 +605,23 @@ spec:
             port:
               number: ${KC_SVC_PORT}
 EOF
+kubectl -n "${NAMESPACE}" get virtualservice keycloak -o yaml | sed -n '/^spec:/,$p' | sed 's/^/      /'
 ok "VirtualService ${NAMESPACE}/keycloak -> ${KC_SVC}:${KC_SVC_PORT}"
 
 # ---------------------------------------------------------------------------
-# 9. Verify
+# 9. Wait for Postgres, then Keycloak, then verify end to end
 # ---------------------------------------------------------------------------
-log "Step 9/9: verify"
+log "Step 9/9: wait for pods + verify"
+PG_STS="$(kubectl -n "${NAMESPACE}" get sts -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep -i postgres | head -n1 || true)"
+KC_STS="$(kubectl -n "${NAMESPACE}" get sts -l app.kubernetes.io/name=keycloakx -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+KC_STS="${KC_STS:-${RELEASE}-keycloak}"
+[[ -n "${PG_STS}" ]] && wait_for_sts "${NAMESPACE}" "${PG_STS}"
+info "Postgres is up; giving Keycloak ${KC_START_GRACE}s before watching (first boot runs the schema migration)"
+sleep "${KC_START_GRACE}"
+wait_for_sts "${NAMESPACE}" "${KC_STS}"
+kubectl -n "${NAMESPACE}" get endpoints "${KC_SVC}" -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q . \
+  || die "Service ${KC_SVC} has no endpoints even though the pod is Ready — selector mismatch?"
+ok "service ${KC_SVC} has endpoints"
 verify
 
 cat <<EOF

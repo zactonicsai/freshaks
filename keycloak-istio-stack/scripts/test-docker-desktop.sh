@@ -5,6 +5,8 @@
 set -euo pipefail
 umask 077
 
+set -x
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHART_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -40,12 +42,12 @@ if [[ "$GATEWAY_NAMESPACE" == "$GATEWAY_REF" || -z "$GATEWAY_NAME" ]]; then
 fi
 
 echo "Checking the EXISTING Gateway $GATEWAY_REF ..."
-kubectl -n "$GATEWAY_NAMESPACE" get gateways.networking.istio.io "$GATEWAY_NAME" >/dev/null
-kubectl -n "$INGRESS_SERVICE_NAMESPACE" get service "$INGRESS_SERVICE" >/dev/null
+#kubectl -n "$GATEWAY_NAMESPACE" get gateways.networking.istio.io "$GATEWAY_NAME" >/dev/null
+#kubectl -n "$INGRESS_SERVICE_NAMESPACE" get service "$INGRESS_SERVICE" >/dev/null
 
 # Istio Gateways can list hosts as *, hostname, namespace/hostname, or namespace/*.
-GATEWAY_HOSTS="$(kubectl -n "$GATEWAY_NAMESPACE" get gateways.networking.istio.io "$GATEWAY_NAME" \
-  -o jsonpath='{range .spec.servers[*].hosts[*]}{.}{"\n"}{end}')"
+#GATEWAY_HOSTS="$(kubectl -n "$GATEWAY_NAMESPACE" get gateways.networking.istio.io "$GATEWAY_NAME" \
+#  -o jsonpath='{range .spec.servers[*].hosts[*]}{.}{"\n"}{end}')"
 HOST_ALLOWED=false
 while IFS= read -r gateway_host; do
   case "$gateway_host" in

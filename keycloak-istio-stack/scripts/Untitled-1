@@ -1,0 +1,5 @@
+export GATEWAY_REF=istio-system//local-keycloak-gateway
+export INGRESS_SERVICE_NAMESPACE=istio-system
+export INGRESS_SERVICE=istio-ingressgateway
+export LOCAL_PORT=18080
+./scripts/test-docker-desktop.sh

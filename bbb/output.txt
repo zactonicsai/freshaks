@@ -1,0 +1,85 @@
+
+[1;34m==> [19:21:44] Verifying deployment[0m
+[1;32m  ✔ istiod is ready[0m
+[1;32m  ✔ ingress gateway istio-gateway/public-ingressgateway is ready[0m
+[1;32m  ✔ Gateway istio-gateway/public-ingressgateway exists[0m
+[1;32m  ✔ VirtualService keycloak/keycloak exists[0m
+[1;33m  ! Keycloak pods not Ready — in-cluster health:[0m
+[1;33m  ! no keycloak pod yet[0m
+[1;32m  ✔ http://localhost:8080/realms/master -> HTTP 200 (host -> kind -> Istio gateway -> Keycloak)[0m
+
+[1;35m==================== DIAGNOSTICS (keycloak) ====================[0m
+
+--- helm releases
+
+--- workloads
+NAME                                   READY   AGE
+statefulset.apps/keycloak-keycloak     1/1     54m
+statefulset.apps/keycloak-postgresql   1/1     54m
+
+NAME                                 TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                    AGE
+service/keycloak-keycloak-headless   ClusterIP   None           <none>        80/TCP                     54m
+service/keycloak-keycloak-http       ClusterIP   10.96.195.98   <none>        9000/TCP,80/TCP,8443/TCP   54m
+service/keycloak-postgresql          ClusterIP   10.96.26.6     <none>        5432/TCP                   54m
+service/keycloak-postgresql-hl       ClusterIP   None           <none>        5432/TCP                   54m
+
+NAME                                               STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-keycloak-postgresql-0   Bound    pvc-d623eaf3-4c02-4363-9434-5eced6e3952a   2Gi        RWO            standard       <unset>                 54m
+
+NAME                                    TYPE                 DATA   AGE
+secret/keycloak-keycloak-database       Opaque               1      54m
+secret/keycloak-keycloak-env            Opaque               9      54m
+secret/keycloak-postgresql              Opaque               2      54m
+secret/sh.helm.release.v1.keycloak.v1   helm.sh/release.v1   1      54m
+
+--- pods
+NAME                    READY   STATUS    RESTARTS   AGE   IP           NODE                        NOMINATED NODE   READINESS GATES
+keycloak-keycloak-0     1/1     Running   0          54m   10.244.0.7   bb-keycloak-control-plane   <none>           <none>
+keycloak-postgresql-0   1/1     Running   0          54m   10.244.0.9   bb-keycloak-control-plane   <none>           <none>
+
+--- container states (init + main)
+keycloak-keycloak-0: phase=Running reason= 
+  [init] dbchecker              ready=True restarts=0 state=terminated reason=Completed exit=0 
+  [cont] keycloak               ready=True restarts=0 state=running reason= exit= 
+keycloak-postgresql-0: phase=Running reason= 
+  [cont] postgresql             ready=True restarts=0 state=running reason= exit= 
+
+--- probes (from StatefulSets)
+keycloak-keycloak:  keycloak startup=HTTP://:http-internal/health/started ready=HTTP://:http-internal/health/ready live=HTTP://:http-internal/health/live
+keycloak-postgresql:  postgresql startup=://: ready=://: live=://:
+
+--- in-cluster health (curl from the gateway pod)
+[1;33m  ! no keycloak pod yet[0m
+
+--- probe failures (reason=Unhealthy)
+LAST SEEN   TYPE      REASON      OBJECT                    MESSAGE
+13m         Warning   Unhealthy   pod/keycloak-keycloak-0   Readiness probe failed: HTTP probe failed with statuscode: 503
+
+--- events (newest last)
+LAST SEEN   TYPE      REASON                  OBJECT                                             MESSAGE
+54m         Normal    SuccessfulCreate        statefulset/keycloak-postgresql                    Create Pod keycloak-postgresql-0 in StatefulSet keycloak-postgresql successful
+54m         Normal    ExternalProvisioning    persistentvolumeclaim/data-keycloak-postgresql-0   Waiting for a volume to be created either by the external provisioner 'rancher.io/local-path' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+54m         Normal    Provisioning            persistentvolumeclaim/data-keycloak-postgresql-0   External provisioner is provisioning volume for claim "keycloak/data-keycloak-postgresql-0"
+54m         Normal    SuccessfulCreate        statefulset/keycloak-keycloak                      Create Pod keycloak-keycloak-0 in StatefulSet keycloak-keycloak successful
+54m         Normal    Scheduled               pod/keycloak-keycloak-0                            Successfully assigned keycloak/keycloak-keycloak-0 to bb-keycloak-control-plane
+54m         Normal    WaitForFirstConsumer    persistentvolumeclaim/data-keycloak-postgresql-0   waiting for first consumer to be created before binding
+54m         Normal    NoPods                  poddisruptionbudget/keycloak-postgresql            No matching pods found
+54m         Normal    SuccessfulCreate        statefulset/keycloak-postgresql                    Create Claim data-keycloak-postgresql-0 Pod keycloak-postgresql-0 in StatefulSet keycloak-postgresql success
+54m         Normal    Pulling                 pod/keycloak-keycloak-0                            Pulling image "docker.io/busybox:1.37"
+54m         Normal    ProvisioningSucceeded   persistentvolumeclaim/data-keycloak-postgresql-0   Successfully provisioned volume pvc-d623eaf3-4c02-4363-9434-5eced6e3952a
+54m         Normal    Started                 pod/keycloak-keycloak-0                            Container started
+54m         Normal    Created                 pod/keycloak-keycloak-0                            Container created
+54m         Normal    Pulled                  pod/keycloak-keycloak-0                            Successfully pulled image "docker.io/busybox:1.37" in 2.636s (2.636s including waiting). Image size: 1911395 bytes.
+54m         Normal    Scheduled               pod/keycloak-postgresql-0                          Successfully assigned keycloak/keycloak-postgresql-0 to bb-keycloak-control-plane
+54m         Normal    Pulling                 pod/keycloak-postgresql-0                          Pulling image "docker.io/bitnamilegacy/postgresql:17.6.0"
+54m         Normal    Pulled                  pod/keycloak-postgresql-0                          Successfully pulled image "docker.io/bitnamilegacy/postgresql:17.6.0" in 3.629s (3.629s including waiting). Image size: 109589167 bytes.
+54m         Normal    Created                 pod/keycloak-postgresql-0                          Container created
+54m         Normal    Started                 pod/keycloak-postgresql-0                          Container started
+54m         Normal    Pulling                 pod/keycloak-keycloak-0                            Pulling image "quay.io/keycloak/keycloak:26.8.0"
+54m         Normal    Started                 pod/keycloak-keycloak-0                            Container started
+54m         Normal    Created                 pod/keycloak-keycloak-0                            Container created
+54m         Normal    Pulled                  pod/keycloak-keycloak-0                            Successfully pulled image "quay.io/keycloak/keycloak:26.8.0" in 5.134s (5.134s including waiting). Image size: 266530504 bytes.
+13m         Warning   Unhealthy               pod/keycloak-keycloak-0                            Readiness probe failed: HTTP probe failed with statuscode: 503
+
+--- logs of non-ready pods (last 80 lines, current + previous)
+[1;35m===========================================================[0m

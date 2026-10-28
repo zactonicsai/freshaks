@@ -1,0 +1,100 @@
+# examples/bigbang-umbrella-overrides.yaml
+#
+# The SAME Keycloak settings, expressed as a Big Bang umbrella-chart override file
+# (what you pass to `helm upgrade bigbang bigbang/bigbang -f ...` or reference from a
+# Flux GitRepository/HelmRelease in a Big Bang environment repo).
+#
+# Differences from installing the package chart directly:
+#   - the umbrella provides istio-core/istio-gateway, cert-manager-issued gateway certs,
+#     NetworkPolicies, monitoring, and the `public` / `passthrough` gateways
+#   - package values live under addons.keycloak.values and are passed through 1:1
+#   - addons.keycloak.ingress.gateway picks which umbrella gateway the route uses
+#   - images, pull secrets and global.domain are supplied by the umbrella
+#
+# Validate without deploying:
+#   helm template bigbang bigbang/bigbang -f examples/bigbang-umbrella-overrides.yaml \
+#     --set registryCredentials.username=x --set registryCredentials.password=y | grep -A40 'kind: HelmRelease' | grep -B2 -A40 'name: keycloak'
+
+domain: example.com
+
+istio:
+  enabled: true
+  gateways:
+    public:
+      ingressGateway: "public-ingressgateway"
+      hosts: ["*.{{ .Values.domain }}"]
+      tls:
+        key: ""                       # or let cert-manager/sops populate
+        cert: ""
+    passthrough:
+      ingressGateway: "passthrough-ingressgateway"
+      hosts: ["*.{{ .Values.domain }}"]
+      tls:
+        mode: "PASSTHROUGH"
+
+addons:
+  keycloak:
+    enabled: true
+    ingress:
+      gateway: "public"               # "passthrough" for the CAC/TLS-in-pod variant
+      # for passthrough you also supply the cert the POD serves:
+      # key: ""   cert: ""           -> rendered into a Secret and mounted by the package chart
+    database:                         # external DB wiring (umbrella creates the secret + sets upstream.database.*)
+      host: keycloak-prod.cluster-abc.us-east-1.rds.amazonaws.com
+      port: 5432
+      username: keycloak
+      password: "sops-encrypted-in-real-life"
+      database: keycloak
+      type: postgres
+    sso:
+      enabled: false                  # umbrella-managed realm/client bootstrap for other BB packages
+    values:                           # <- everything below is the package chart's values, unchanged
+      upstream:
+        replicas: 3
+        args: ["start", "--optimized"]
+        proxy:
+          enabled: true
+          mode: xforwarded
+          http:
+            enabled: true
+        http:
+          relativePath: "/"
+          managementRelativePath: "/"
+          internalScheme: HTTP
+        extraEnv: |-
+          - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
+            value: "true"
+          - name: KC_LOG_LEVEL
+            value: "INFO,org.keycloak.events:DEBUG"
+          - name: KC_DB_POOL_MAX_SIZE
+            value: "30"
+        secrets:
+          env:
+            stringData:
+              KC_HOSTNAME: "https://keycloak.{{ .Values.domain }}"
+              KC_HOSTNAME_ADMIN: "https://keycloak-admin.internal.{{ .Values.domain }}"
+              KC_HOSTNAME_STRICT: "true"
+              JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=70"
+        dbchecker:
+          enabled: true
+        resources:
+          requests: {cpu: "1", memory: 2Gi}
+          limits:   {cpu: "2", memory: 2Gi}
+        podDisruptionBudget:
+          minAvailable: 2
+        startupProbe: |
+          httpGet: {path: /health/started, port: http-internal, scheme: HTTP}
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          failureThreshold: 90
+      bb-common:
+        routes:
+          inbound:
+            keycloak-admin:
+              enabled: true
+              gateways: ["istio-gateway/internal-ingressgateway"]
+              hosts: ["keycloak-admin.internal.{{ .Values.global.domain }}"]
+              service: keycloak-keycloak-http
+              port: 80
+      postgresql:
+        enabled: false

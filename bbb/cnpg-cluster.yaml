@@ -1,0 +1,108 @@
+# examples/cnpg-cluster.yaml
+#
+# HA PostgreSQL for Keycloak with CloudNativePG (https://cloudnative-pg.io):
+#   - 3 instances (1 primary + 2 replicas), automatic failover, synchronous replication
+#   - continuous WAL archiving + base backups to S3 (point-in-time recovery)
+#   - declarative major-version upgrades (change imageName -> operator runs pg_upgrade)
+#
+# Install the operator first:
+#   helm repo add cnpg https://cloudnative-pg.github.io/charts
+#   helm upgrade --install cnpg cnpg/cloudnative-pg -n cnpg-system --create-namespace
+#
+# Then:
+#   kubectl -n keycloak create secret generic keycloak-db-app \
+#       --from-literal=username=keycloak --from-literal=password='...' --type=kubernetes.io/basic-auth
+#   kubectl apply -f examples/cnpg-cluster.yaml
+#
+# Keycloak values (examples/values-external-db-cnpg.yaml):
+#   upstream.database.hostname: keycloak-pg-rw.keycloak.svc.cluster.local
+#   upstream.database.existingSecret: keycloak-db-app  (key: password)
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-pg
+  namespace: keycloak
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.6     # bump to :18.x = declarative major upgrade (offline, operator-run pg_upgrade)
+  primaryUpdateStrategy: unsupervised                   # roll replicas, then switchover, automatically on minor updates
+
+  bootstrap:
+    initdb:
+      database: keycloak
+      owner: keycloak
+      secret:
+        name: keycloak-db-app                           # basic-auth secret: username/password
+
+  postgresql:
+    parameters:
+      max_connections: "300"                            # keycloak replicas x KC_DB_POOL_MAX_SIZE + headroom
+      shared_buffers: "512MB"
+      wal_level: logical
+      log_min_duration_statement: "1000"
+    pg_hba:
+      - hostssl keycloak keycloak 10.0.0.0/8 scram-sha-256
+
+  minSyncReplicas: 1                                    # synchronous commit to >=1 replica: no data loss on failover
+  maxSyncReplicas: 1
+
+  storage:
+    size: 50Gi
+    storageClass: gp3
+  walStorage:
+    size: 20Gi
+    storageClass: gp3
+
+  resources:
+    requests: {cpu: "1", memory: 2Gi}
+    limits:   {cpu: "2", memory: 2Gi}
+
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: topology.kubernetes.io/zone
+    podAntiAffinityType: required
+
+  monitoring:
+    enablePodMonitor: true
+
+  backup:
+    retentionPolicy: "30d"
+    barmanObjectStore:
+      destinationPath: s3://my-keycloak-backups/keycloak-pg
+      s3Credentials:
+        inheritFromIAMRole: true                        # IRSA; or accessKeyId/secretAccessKey secretKeyRef
+      wal:
+        compression: gzip
+      data:
+        compression: gzip
+        jobs: 2
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: keycloak-pg-nightly
+  namespace: keycloak
+spec:
+  schedule: "0 0 3 * * *"                               # 03:00 daily (6-field cron, seconds first)
+  backupOwnerReference: self
+  cluster:
+    name: keycloak-pg
+---
+# Optional: connection pooler in front of the primary (transaction pooling is NOT safe for Keycloak;
+# use session mode). Point Keycloak at keycloak-pg-pooler-rw instead of keycloak-pg-rw.
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: keycloak-pg-pooler-rw
+  namespace: keycloak
+spec:
+  cluster:
+    name: keycloak-pg
+  instances: 2
+  type: rw
+  pgbouncer:
+    poolMode: session
+    parameters:
+      max_client_conn: "500"
+      default_pool_size: "50"

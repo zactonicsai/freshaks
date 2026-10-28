@@ -1,0 +1,242 @@
+# examples/values-cloud-passthrough-cac.yaml
+#
+# Big Bang-style deployment where Keycloak OWNS the TLS certificate:
+#   - Istio passthrough gateway (SNI routing, no TLS termination at the edge)
+#   - Keycloak serves HTTPS on 8443 from a cert Secret; HTTP disabled
+#   - Client certificate (CAC/PIV) authentication requested, truststore mounted
+#   - P1 Keycloak plugin (custom registration/X509 flows) via init container
+#   - Realm imported on first start (--import-realm) from a Secret
+#   - Bundled Postgres from Iron Bank (swap to external DB for real production)
+#
+# Secrets you must create in the keycloak namespace (see examples/secrets-example.yaml):
+#   private-registry        docker-registry secret for registry1.dso.mil
+#   keycloak-tls            kubernetes.io/tls (tls.crt / tls.key) for keycloak.example.com
+#   keycloak-truststore     key truststore.pfx (DoD/CA roots used to validate client certs)
+#   keycloak-realm          key realm.json
+#
+# Install:
+#   helm upgrade --install keycloak ./chart -n keycloak -f examples/values-cloud-passthrough-cac.yaml
+
+global:
+  domain: example.com
+  imagePullSecrets:
+    - private-registry
+
+bb-common:
+  istio:
+    enabled: true
+    sidecar:
+      enabled: true
+    mtls:
+      mode: STRICT
+  networkPolicies:
+    enabled: true
+  routes:
+    inbound:
+      keycloak:
+        enabled: true
+        gateways: ["istio-gateway/passthrough-ingressgateway"]
+        hosts:
+          - "keycloak.{{ .Values.global.domain }}"
+        service: keycloak-keycloak-http           # the -http Service also carries the https port (8443 -> targetPort https)
+        port: 8443
+        containerPort: 8443
+        passthrough:
+          enabled: true                           # -> VirtualService tls: match sniHosts
+          gatewayPort: 8443
+
+bbtests:
+  enabled: false
+
+upstream:
+  replicas: 2
+
+  image:
+    repository: registry1.dso.mil/ironbank/opensource/keycloak/keycloak
+    tag: "26.8.0"
+  imagePullSecrets:
+    - name: private-registry
+
+  command: ["/opt/keycloak/bin/kc.sh"]
+  args: ["start", "--import-realm"]
+
+  proxy:
+    enabled: true
+    mode: xforwarded                              # still needed for X-Forwarded-For (audit/brute-force) — gateway passes TCP only, so Keycloak sees the real client IP anyway
+    http:
+      enabled: false                              # HTTPS only
+  cache:
+    stack: default
+  metrics:
+    enabled: true
+  health:
+    enabled: true
+  http:
+    relativePath: "/"
+    managementRelativePath: "/"
+    internalPort: http-internal
+    internalScheme: HTTPS                         # management interface inherits TLS -> probes must use HTTPS
+
+  extraEnv: |-
+    - name: KC_HTTPS_CERTIFICATE_FILE
+      value: /opt/keycloak/conf/tls/tls.crt
+    - name: KC_HTTPS_CERTIFICATE_KEY_FILE
+      value: /opt/keycloak/conf/tls/tls.key
+    - name: KC_HTTPS_CLIENT_AUTH
+      value: request                              # ask for a client cert, don't require it (CAC optional)
+    - name: KC_HTTPS_MANAGEMENT_CLIENT_AUTH
+      value: none                                 # so kubelet probes need no client cert
+    - name: KC_TRUSTSTORE_PATHS
+      value: /opt/keycloak/conf/truststore/truststore.pfx
+    - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
+      value: "true"
+    - name: KC_LOG_LEVEL
+      value: "INFO,org.keycloak.events:DEBUG,org.keycloak.authentication:DEBUG"
+    - name: KC_SPI_X509CERT_LOOKUP_PROVIDER         # Keycloak reads the client cert from its own TLS handshake
+      value: default
+    - name: CUSTOM_REGISTRATION_CONFIG
+      value: /opt/keycloak/conf/customreg/customreg.yaml
+
+  secrets:
+    env:
+      stringData:
+        KC_HOSTNAME: "https://keycloak.example.com"
+        KC_HOSTNAME_STRICT: "true"
+        KC_BOOTSTRAP_ADMIN_USERNAME: admin
+        KC_BOOTSTRAP_ADMIN_PASSWORD: "CHANGE-ME-use-existing-secret-instead"
+        JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=70"
+        JAVA_OPTS_APPEND: "-Djava.net.preferIPv4Stack=true"
+    customreg:                                    # chart-managed Secret: keycloak-keycloak-customreg
+      stringData:
+        customreg.yaml: |
+          x509:
+            userIdentityAttribute: "usercertificate"
+            autoJoinGroup: ["/Impact Level 2 Authorized"]
+          groupProtectionEnabled: true
+
+  extraInitContainers: |-
+    - name: plugin
+      image: registry1.dso.mil/ironbank/big-bang/p1-keycloak-plugin:3.5.0
+      imagePullPolicy: IfNotPresent
+      command: ["sh", "-c", "cp /app/p1-keycloak-plugin.jar /init/ && ls -l /init"]
+      volumeMounts:
+        - name: plugin
+          mountPath: /init
+      securityContext:
+        runAsUser: 2000
+        runAsGroup: 2000
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities: {drop: ["ALL"]}
+
+  extraVolumes: |-
+    - name: tls
+      secret:
+        secretName: keycloak-tls                  # created out-of-band / by cert-manager in THIS namespace
+    - name: truststore
+      secret:
+        secretName: keycloak-truststore
+    - name: realm
+      secret:
+        secretName: keycloak-realm
+    - name: customreg
+      secret:
+        secretName: {{ include "keycloak.fullname" . }}-customreg
+    - name: plugin
+      emptyDir: {}
+
+  extraVolumeMounts: |-
+    - name: tls
+      mountPath: /opt/keycloak/conf/tls
+      readOnly: true
+    - name: truststore
+      mountPath: /opt/keycloak/conf/truststore
+      readOnly: true
+    - name: realm
+      mountPath: /opt/keycloak/data/import        # --import-realm reads every *.json here
+      readOnly: true
+    - name: customreg
+      mountPath: /opt/keycloak/conf/customreg
+      readOnly: true
+    - name: plugin
+      mountPath: /opt/keycloak/providers          # providers dir; needs kc.sh build -> happens automatically on `start` (not --optimized)
+
+  database:
+    vendor: postgres
+    hostname: keycloak-postgresql
+    port: 5432
+    database: keycloak
+    username: keycloak
+    existingSecret: keycloak-postgresql           # Bitnami chart's own secret
+    existingSecretKey: password
+
+  dbchecker:
+    enabled: true
+    image:
+      repository: registry1.dso.mil/ironbank/redhat/ubi/ubi9-minimal
+      tag: "9.6"
+
+  service:
+    type: ClusterIP
+    httpPort: 80
+    httpsPort: 8443
+
+  startupProbe: |
+    httpGet: {path: /health/started, port: http-internal, scheme: HTTPS}
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    failureThreshold: 90
+  readinessProbe: |
+    httpGet: {path: /health/ready, port: http-internal, scheme: HTTPS}
+    periodSeconds: 10
+    failureThreshold: 3
+  livenessProbe: |
+    httpGet: {path: /health/live, port: http-internal, scheme: HTTPS}
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  resources:
+    requests: {cpu: "1", memory: 2Gi}
+    limits:   {cpu: "2", memory: 2Gi}
+  podSecurityContext: {fsGroup: 2000, runAsGroup: 2000, runAsNonRoot: true, runAsUser: 2000}
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities: {drop: ["ALL"]}
+    runAsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 2000
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeInboundPorts: "9000,7800"   # probes + JGroups bypass the sidecar
+  podDisruptionBudget:
+    minAvailable: 1
+
+postgresql:
+  enabled: true
+  image:
+    registry: registry1.dso.mil
+    repository: ironbank/bitnami/postgres
+    tag: "17.6.0"
+  global:
+    imagePullSecrets: [private-registry]
+    security:
+      allowInsecureImages: true
+    postgresql:
+      auth:
+        username: keycloak
+        database: keycloak
+        existingSecret: keycloak-postgresql-auth   # keys: password, postgres-password (create out-of-band)
+        secretKeys:
+          userPasswordKey: password
+          adminPasswordKey: postgres-password
+  primary:
+    persistence:
+      size: 20Gi
+      storageClass: gp3
+    resources:
+      requests: {cpu: 500m, memory: 1Gi}
+      limits:   {cpu: "2", memory: 2Gi}
+    extendedConfiguration: |
+      max_connections = 200
+  metrics:
+    enabled: true

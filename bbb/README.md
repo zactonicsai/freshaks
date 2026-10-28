@@ -32,6 +32,8 @@ StatefulSet keycloak-postgresql  (Bitnami PostgreSQL subchart -> docker.io/bitna
 | `deploy.sh` | One-shot installer: kind cluster → Istio (base, istiod, ingress gateway) → Gateway → clone chart → pre-flight `helm template` → Keycloak → VirtualService → verify. Also `--verify` and `--destroy`. |
 | `values.yaml` | Helm values for the Big Bang Keycloak chart, tuned for kind. Documented in section 3. |
 | `.work/` | Created by the script: the cloned chart (`.work/keycloak`) and the last rendered manifest (`.work/rendered.yaml`). Safe to delete. |
+| `kc-check.sh` | Read-only diagnostics: pods, effective probe spec, in-cluster `/health/*` bodies, DB reachability, hostname/issuer consistency, Gateway/VirtualService/Envoy state, gateway access-log flags. Sections: `pods probes health db hostname istio`. Works on kind and cloud (`PUBLIC_URL=https://keycloak.example.com ./kc-check.sh`). |
+| `docs/ISTIO-AND-HEALTHCHECKS.md` | How Istio routes to Keycloak, Gateway/VirtualService (HTTP, TLS-terminated, passthrough, bb-common), Keycloak health endpoints and probe design, sidecar/mTLS caveats, and the kubectl/istioctl commands behind `kc-check.sh`. |
 
 ## 2. Requirements
 
@@ -141,6 +143,7 @@ Big Bang's Cypress/script test hooks need the `bbtests` image and a passthrough 
 ./deploy.sh --diagnose            # pods, per-container state/reason/exit code, events, logs (current + previous)
 ./deploy.sh --port-forward        # kubectl port-forward host:8080 -> istio gateway :80 (bypasses kind port mapping)
 ./deploy.sh --destroy             # delete the kind cluster (and all data)
+./kc-check.sh [section]           # deep diagnostics (see docs/ISTIO-AND-HEALTHCHECKS.md)
 
 kubectl -n keycloak get pods,svc,pvc
 kubectl -n keycloak logs -f -l app.kubernetes.io/name=keycloakx
